@@ -319,6 +319,7 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
             const segMid = (op.start + op.end) / 2;
             const glassY = sill + winH / 2;
 
+            const wff = 0.06; // window frame width
             let gx = baseX, gz = baseZ;
             if (isHorizontal) {
               gx = (wall === 'top' ? room.x : room.x) + segMid;
@@ -335,6 +336,21 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
                   <meshStandardMaterial color="#ccc8c0" roughness={0.65} metalness={0.04} />
                 </mesh>
               );
+              // Window frame jambs + top casing
+              result.push(
+                <mesh key={`wframe-l-${wall}-${op.start}`} castShadow position={[gx - segLen / 2 - wff / 2, sill + winH / 2, gz]}>
+                  <boxGeometry args={[wff, winH, wt + 0.04]} />
+                  <meshStandardMaterial color="#e8e4de" roughness={0.65} />
+                </mesh>,
+                <mesh key={`wframe-r-${wall}-${op.start}`} castShadow position={[gx + segLen / 2 + wff / 2, sill + winH / 2, gz]}>
+                  <boxGeometry args={[wff, winH, wt + 0.04]} />
+                  <meshStandardMaterial color="#e8e4de" roughness={0.65} />
+                </mesh>,
+                <mesh key={`wframe-t-${wall}-${op.start}`} castShadow position={[gx, sill + winH + wff / 2, gz]}>
+                  <boxGeometry args={[segLen + wff * 2, wff, wt + 0.04]} />
+                  <meshStandardMaterial color="#e8e4de" roughness={0.65} />
+                </mesh>
+              );
             } else {
               gz = (wall === 'left' ? room.y : room.y) + segMid;
               gx = wall === 'left' ? room.x : room.x + room.width;
@@ -348,6 +364,21 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
                 <mesh key={`sill-${wall}-${op.start}`} position={[gx, sill + 0.025, gz]} castShadow>
                   <boxGeometry args={[wt + 0.1, 0.05, segLen + 0.06]} />
                   <meshStandardMaterial color="#ccc8c0" roughness={0.65} metalness={0.04} />
+                </mesh>
+              );
+              // Window frame jambs + top casing
+              result.push(
+                <mesh key={`wframe-l-${wall}-${op.start}`} castShadow position={[gx, sill + winH / 2, gz - segLen / 2 - wff / 2]}>
+                  <boxGeometry args={[wt + 0.04, winH, wff]} />
+                  <meshStandardMaterial color="#e8e4de" roughness={0.65} />
+                </mesh>,
+                <mesh key={`wframe-r-${wall}-${op.start}`} castShadow position={[gx, sill + winH / 2, gz + segLen / 2 + wff / 2]}>
+                  <boxGeometry args={[wt + 0.04, winH, wff]} />
+                  <meshStandardMaterial color="#e8e4de" roughness={0.65} />
+                </mesh>,
+                <mesh key={`wframe-t-${wall}-${op.start}`} castShadow position={[gx, sill + winH + wff / 2, gz]}>
+                  <boxGeometry args={[wt + 0.04, wff, segLen + wff * 2]} />
+                  <meshStandardMaterial color="#e8e4de" roughness={0.65} />
                 </mesh>
               );
             }
