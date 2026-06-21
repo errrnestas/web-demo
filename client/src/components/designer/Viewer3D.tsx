@@ -389,6 +389,11 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
             const panelT = 0.04;
             const doorW = op.end - op.start;
 
+            // Wall segment above the door opening (transom strip)
+            if (doorH < wh) {
+              segments.push({ from: op.start, to: op.end, fromY: doorH, toY: wh });
+            }
+
             const fw = 0.07; // door frame width
             if (isHorizontal) {
               const wallZ = wall === 'top' ? room.y : room.y + room.height;
@@ -475,7 +480,8 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
         const segMidY = (seg.fromY + seg.toY) / 2;
 
         const baseH = 0.12;
-        const baseDep = wt + 0.03;
+        const crownH = 0.09;
+        const trimDep = wt + 0.03;
         if (isHorizontal) {
           const wallZ = wall === 'top' ? room.y : room.y + room.height;
           result.push(
@@ -491,11 +497,18 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
               wallMaterial={room.wallMaterial}
             />
           );
-          {/* Baseboard at floor level */}
           if (seg.fromY === 0) {
             result.push(
               <mesh key={`base-${wall}-${seg.from}`} castShadow position={[room.x + segMid, baseH / 2, wallZ]}>
-                <boxGeometry args={[segLen, baseH, baseDep]} />
+                <boxGeometry args={[segLen, baseH, trimDep]} />
+                <meshStandardMaterial color="#ede8e0" roughness={0.62} />
+              </mesh>
+            );
+          }
+          if (seg.toY >= wh - 0.01) {
+            result.push(
+              <mesh key={`crown-${wall}-${seg.from}`} castShadow position={[room.x + segMid, wh - crownH / 2, wallZ]}>
+                <boxGeometry args={[segLen, crownH, trimDep]} />
                 <meshStandardMaterial color="#ede8e0" roughness={0.62} />
               </mesh>
             );
@@ -515,11 +528,18 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
               wallMaterial={room.wallMaterial}
             />
           );
-          {/* Baseboard at floor level */}
           if (seg.fromY === 0) {
             result.push(
               <mesh key={`base-${wall}-${seg.from}`} castShadow position={[wallX, baseH / 2, room.y + segMid]}>
-                <boxGeometry args={[baseDep, baseH, segLen]} />
+                <boxGeometry args={[trimDep, baseH, segLen]} />
+                <meshStandardMaterial color="#ede8e0" roughness={0.62} />
+              </mesh>
+            );
+          }
+          if (seg.toY >= wh - 0.01) {
+            result.push(
+              <mesh key={`crown-${wall}-${seg.from}`} castShadow position={[wallX, wh - crownH / 2, room.y + segMid]}>
+                <boxGeometry args={[trimDep, crownH, segLen]} />
                 <meshStandardMaterial color="#ede8e0" roughness={0.62} />
               </mesh>
             );
