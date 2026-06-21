@@ -700,7 +700,8 @@ function WalkControls({ enabled }: { enabled: boolean }) {
 
     const canvas = gl.domElement;
 
-    const onKey = (e: KeyboardEvent, down: boolean) => { keysRef.current[e.code] = down; };
+    const onKeyDown = (e: KeyboardEvent) => { keysRef.current[e.code] = true; };
+    const onKeyUp = (e: KeyboardEvent) => { keysRef.current[e.code] = false; };
     const onMouseMove = (e: MouseEvent) => {
       if (!lockedRef.current) return;
       yawRef.current -= e.movementX * 0.002;
@@ -709,8 +710,8 @@ function WalkControls({ enabled }: { enabled: boolean }) {
     const onLockChange = () => { lockedRef.current = !!document.pointerLockElement; };
     const onClick = () => { canvas.requestPointerLock(); };
 
-    window.addEventListener('keydown', e => onKey(e, true));
-    window.addEventListener('keyup', e => onKey(e, false));
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
     window.addEventListener('mousemove', onMouseMove);
     document.addEventListener('pointerlockchange', onLockChange);
     canvas.addEventListener('click', onClick);
@@ -719,8 +720,8 @@ function WalkControls({ enabled }: { enabled: boolean }) {
     camera.lookAt(8, 1.7, 5);
 
     return () => {
-      window.removeEventListener('keydown', e => onKey(e, true));
-      window.removeEventListener('keyup', e => onKey(e, false));
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('pointerlockchange', onLockChange);
       canvas.removeEventListener('click', onClick);

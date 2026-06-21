@@ -286,14 +286,70 @@ export default function FloorPlanCanvas() {
 
     // Drawing preview is handled in mousemove (live update)
 
-    // Scale indicator
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(12, canvas.height - 35, 82, 24);
+    // Scale bar
+    const barMeters = 5;
+    const barPx = barMeters * scaleRef.current;
+    const bx = 16, by = canvas.height - 28;
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(bx - 4, by - 4, barPx + 8, 20);
+    ctx.fillStyle = '#60a5fa';
+    ctx.fillRect(bx, by + 2, barPx, 8);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(bx, by + 2, barPx / 2, 4);
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '11px Inter, sans-serif';
-    ctx.textAlign = 'left';
+    ctx.font = '9px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${barMeters}m`, bx + barPx / 2, by - 12);
+
+    // Compass rose (top-right corner)
+    const cx2 = canvas.width - 36, cy2 = 36;
+    const cr = 22;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath(); ctx.arc(cx2, cy2, cr + 4, 0, Math.PI * 2); ctx.fill();
+    // N arrow (up)
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(cx2, cy2 - cr); ctx.lineTo(cx2 - 7, cy2); ctx.lineTo(cx2, cy2 - 4); ctx.closePath(); ctx.fill();
+    // S arrow (down)
+    ctx.fillStyle = '#64748b';
+    ctx.beginPath();
+    ctx.moveTo(cx2, cy2 + cr); ctx.lineTo(cx2 + 7, cy2); ctx.lineTo(cx2, cy2 + 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Inter, sans-serif';
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`1m = ${scaleRef.current}px`, 20, canvas.height - 23);
+    ctx.fillText('N', cx2, cy2 - cr - 8);
+    ctx.restore();
+
+    // Overall house dimensions (if there are rooms)
+    if (plan.rooms.length > 0) {
+      const minX = Math.min(...plan.rooms.map(r => r.x));
+      const maxX = Math.max(...plan.rooms.map(r => r.x + r.width));
+      const minY = Math.min(...plan.rooms.map(r => r.y));
+      const maxY = Math.max(...plan.rooms.map(r => r.y + r.height));
+      const totalW = maxX - minX;
+      const totalH = maxY - minY;
+      const { x: pMinX, y: pMinY } = worldToCanvas(minX, minY);
+      const { x: pMaxX, y: pMaxY } = worldToCanvas(maxX, maxY);
+
+      ctx.strokeStyle = 'rgba(96,165,250,0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeRect(pMinX - 30, pMinY - 30, pMaxX - pMinX + 60, pMaxY - pMinY + 60);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(96,165,250,0.85)';
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`${totalW.toFixed(1)}m`, (pMinX + pMaxX) / 2, pMinY - 32);
+      ctx.save();
+      ctx.translate(pMinX - 32, (pMinY + pMaxY) / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(`${totalH.toFixed(1)}m`, 0, 0);
+      ctx.restore();
+    }
 
   }, [state, panOffset, drawing, worldToCanvas]);
 
