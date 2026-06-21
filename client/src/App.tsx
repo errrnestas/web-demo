@@ -11,11 +11,13 @@ import Guides from "@/pages/Guides";
 import GuideDetails from "@/pages/GuideDetails";
 import About from "@/pages/About";
 import Contact from "@/pages/Contact";
+import CarScanner from "@/pages/CarScanner";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/automobiliai" component={CarScanner} />
       <Route path="/projects/:id" component={ProjectDetails} />
       <Route path="/services" component={Services} />
       <Route path="/guides" component={Guides} />

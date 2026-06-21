@@ -3,6 +3,12 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { scrapeAllPortals, formatEmailReport, type ScrapeResult } from "./car-scraper";
+
+// Simple in-memory cache
+let scanCache: ScrapeResult | null = null;
+let scanCacheTime = 0;
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 export async function registerRoutes(
   httpServer: Server,
@@ -64,6 +70,36 @@ export async function registerRoutes(
       }
       throw err;
     }
+  });
+
+  // ─── Car Scanner ───────────────────────────────────────────────────────────
+  app.get("/api/cars/scan", async (req, res) => {
+    const force = req.query.force === "true";
+    const now = Date.now();
+
+    if (!force && scanCache && now - scanCacheTime < CACHE_TTL_MS) {
+      return res.json({ ...scanCache, cached: true });
+    }
+
+    try {
+      const result = await scrapeAllPortals();
+      scanCache = result;
+      scanCacheTime = now;
+      res.json({ ...result, cached: false });
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message ?? "Skenovimo klaida" });
+    }
+  });
+
+  app.get("/api/cars/report", (req, res) => {
+    if (!scanCache) {
+      return res.status(404).json({ message: "Pirmiausia atlikite skenavimą" });
+    }
+    const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : undefined;
+    const minYear = req.query.minYear ? Number(req.query.minYear) : 2009;
+    const text = formatEmailReport(scanCache, { maxPrice, minYear });
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.send(text);
   });
 
   await seedDatabase();
