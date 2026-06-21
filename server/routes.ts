@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
+import { insertDesignPlanSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -64,6 +65,51 @@ export async function registerRoutes(
       }
       throw err;
     }
+  });
+
+  // Design Plans CRUD
+  app.get('/api/design-plans', async (_req, res) => {
+    const plans = await storage.getDesignPlans();
+    res.json(plans);
+  });
+
+  app.get('/api/design-plans/:id', async (req, res) => {
+    const plan = await storage.getDesignPlan(Number(req.params.id));
+    if (!plan) return res.status(404).json({ message: 'Plan not found' });
+    res.json(plan);
+  });
+
+  app.post('/api/design-plans', async (req, res) => {
+    try {
+      const input = insertDesignPlanSchema.parse(req.body);
+      const plan = await storage.createDesignPlan(input);
+      res.status(201).json(plan);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.put('/api/design-plans/:id', async (req, res) => {
+    try {
+      const patch = insertDesignPlanSchema.partial().parse(req.body);
+      const plan = await storage.updateDesignPlan(Number(req.params.id), patch);
+      if (!plan) return res.status(404).json({ message: 'Plan not found' });
+      res.json(plan);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  app.delete('/api/design-plans/:id', async (req, res) => {
+    const ok = await storage.deleteDesignPlan(Number(req.params.id));
+    if (!ok) return res.status(404).json({ message: 'Plan not found' });
+    res.status(204).end();
   });
 
   await seedDatabase();

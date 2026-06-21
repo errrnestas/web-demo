@@ -4,11 +4,13 @@ import {
   type InsertGuide,
   type InsertServicePlan,
   type InsertInquiry,
+  type InsertDesignPlan,
   type Project,
   type GalleryPhoto,
   type Guide,
   type ServicePlan,
-  type Inquiry
+  type Inquiry,
+  type DesignPlan,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -23,6 +25,11 @@ export interface IStorage {
   getServicePlans(): Promise<ServicePlan[]>;
   createServicePlan(plan: InsertServicePlan): Promise<ServicePlan>;
   createInquiry(inquiry: InsertInquiry): Promise<Inquiry>;
+  getDesignPlans(): Promise<DesignPlan[]>;
+  getDesignPlan(id: number): Promise<DesignPlan | undefined>;
+  createDesignPlan(plan: InsertDesignPlan): Promise<DesignPlan>;
+  updateDesignPlan(id: number, plan: Partial<InsertDesignPlan>): Promise<DesignPlan | undefined>;
+  deleteDesignPlan(id: number): Promise<boolean>;
 }
 
 export class MemoryStorage implements IStorage {
@@ -31,6 +38,7 @@ export class MemoryStorage implements IStorage {
   private _guides: Guide[] = [];
   private _plans: ServicePlan[] = [];
   private _inquiries: Inquiry[] = [];
+  private _designPlans: DesignPlan[] = [];
   private idCounter = 1;
 
   private nextId() { return this.idCounter++; }
@@ -112,6 +120,48 @@ export class MemoryStorage implements IStorage {
     };
     this._inquiries.push(i);
     return i;
+  }
+
+  async getDesignPlans(): Promise<DesignPlan[]> {
+    return [...this._designPlans].sort((a, b) =>
+      (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0)
+    );
+  }
+
+  async getDesignPlan(id: number): Promise<DesignPlan | undefined> {
+    return this._designPlans.find(p => p.id === id);
+  }
+
+  async createDesignPlan(data: InsertDesignPlan): Promise<DesignPlan> {
+    const now = new Date();
+    const p: DesignPlan = {
+      id: this.nextId(),
+      name: data.name,
+      planData: data.planData,
+      thumbnail: data.thumbnail ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this._designPlans.push(p);
+    return p;
+  }
+
+  async updateDesignPlan(id: number, data: Partial<InsertDesignPlan>): Promise<DesignPlan | undefined> {
+    const idx = this._designPlans.findIndex(p => p.id === id);
+    if (idx === -1) return undefined;
+    this._designPlans[idx] = {
+      ...this._designPlans[idx],
+      ...data,
+      updatedAt: new Date(),
+    };
+    return this._designPlans[idx];
+  }
+
+  async deleteDesignPlan(id: number): Promise<boolean> {
+    const idx = this._designPlans.findIndex(p => p.id === id);
+    if (idx === -1) return false;
+    this._designPlans.splice(idx, 1);
+    return true;
   }
 }
 

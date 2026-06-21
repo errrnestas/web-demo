@@ -7,6 +7,7 @@ import FloorPlanCanvas from '@/components/designer/FloorPlanCanvas';
 import { ExportButton } from '@/components/designer/ExportPanel';
 import CostEstimator from '@/components/designer/CostEstimator';
 import MobileBottomSheet from '@/components/designer/MobileBottomSheet';
+import SaveLoadPanel from '@/components/designer/SaveLoadPanel';
 import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
 
@@ -91,6 +92,7 @@ export default function HomeDesigner() {
 
   const totalArea = state.plan.rooms.reduce((s, r) => s + r.width * r.height, 0);
   const [rightTab, setRightTab] = useState<'props' | 'cost'>('props');
+  const [showSaveLoad, setShowSaveLoad] = useState(false);
 
   return (
     <DesignerContext.Provider value={{ state, dispatch }}>
@@ -149,10 +151,16 @@ export default function HomeDesigner() {
           <div className="w-px h-5 bg-slate-700" />
 
           <button
+            onClick={() => setShowSaveLoad(true)}
+            className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-all shrink-0"
+          >
+            💾 Projektai
+          </button>
+          <button
             onClick={importPlan}
             className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-all shrink-0"
           >
-            📂 Atidaryti
+            📂 JSON
           </button>
           <ExportButton />
         </header>
@@ -208,6 +216,7 @@ export default function HomeDesigner() {
         </div>
 
         <MobileBottomSheet />
+        {showSaveLoad && <SaveLoadPanel onClose={() => setShowSaveLoad(false)} />}
 
         {/* Status bar */}
         <footer className="h-7 bg-slate-900 border-t border-slate-700 hidden lg:flex items-center px-4 gap-6 shrink-0">

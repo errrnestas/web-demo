@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -48,6 +48,19 @@ export const inquiries = pgTable("inquiries", {
   projectId: integer("project_id"), // Optional reference to a project
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const designPlans = pgTable("design_plans", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  planData: text("plan_data").notNull(), // JSON stringified FloorPlan
+  thumbnail: text("thumbnail"), // base64 or URL
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDesignPlanSchema = createInsertSchema(designPlans).omit({ id: true, createdAt: true, updatedAt: true });
+export type DesignPlan = typeof designPlans.$inferSelect;
+export type InsertDesignPlan = z.infer<typeof insertDesignPlanSchema>;
 
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, createdAt: true });
 export const insertGalleryPhotoSchema = createInsertSchema(galleryPhotos).omit({ id: true, createdAt: true });
