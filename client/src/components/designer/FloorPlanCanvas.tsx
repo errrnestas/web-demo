@@ -101,32 +101,62 @@ export default function FloorPlanCanvas() {
 
     const { plan, selectedId } = state;
 
+    const ROOM_ICONS: Record<string, string> = {
+      living: '🛋️', bedroom: '🛏️', kitchen: '🍳', bathroom: '🚿', dining: '🍽️',
+      office: '💻', hallway: '🚪', garage: '🚗', other: '📦',
+    };
+
     // Draw rooms
     for (const room of plan.rooms) {
       const { x, y } = worldToCanvas(room.x, room.y);
       const w = room.width * scaleRef.current;
       const h = room.height * scaleRef.current;
       const isSelected = room.id === selectedId;
+      const wallPx = Math.max(4, Math.min(8, scaleRef.current * 0.12));
 
-      // Floor fill
-      ctx.fillStyle = ROOM_COLORS[room.type] + 'cc';
+      // Wall background (dark grey)
+      ctx.fillStyle = isSelected ? '#1e40af' : '#1e293b';
       ctx.fillRect(x, y, w, h);
 
-      // Walls (thick border)
-      ctx.strokeStyle = isSelected ? '#60a5fa' : '#334155';
-      ctx.lineWidth = isSelected ? 3 : 2;
-      ctx.strokeRect(x, y, w, h);
+      // Floor fill (inner, inset by wall thickness)
+      ctx.fillStyle = ROOM_COLORS[room.type] + 'ee';
+      ctx.fillRect(x + wallPx, y + wallPx, w - wallPx * 2, h - wallPx * 2);
 
-      // Room label
-      ctx.font = `bold ${Math.max(10, Math.min(14, w / 8))}px Inter, sans-serif`;
-      ctx.fillStyle = '#1e293b';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const label = room.name;
-      ctx.fillText(label, x + w / 2, y + h / 2 - 8);
-      ctx.font = `${Math.max(9, Math.min(11, w / 10))}px Inter, sans-serif`;
-      ctx.fillStyle = '#475569';
-      ctx.fillText(`${room.width}m × ${room.height}m`, x + w / 2, y + h / 2 + 8);
+      // Selection glow
+      if (isSelected) {
+        ctx.strokeStyle = '#60a5fa';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 1, y - 1, w + 2, h + 2);
+      }
+
+      // Room labels - only if room is large enough
+      if (w > 60 && h > 40) {
+        const icon = ROOM_ICONS[room.type] || '📦';
+        const centerX = x + w / 2;
+        const centerY = y + h / 2;
+
+        // Icon
+        if (w > 80 && h > 60) {
+          ctx.font = `${Math.min(18, h * 0.25)}px serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(icon, centerX, centerY - 12);
+        }
+
+        // Name
+        ctx.font = `bold ${Math.max(9, Math.min(13, w / 9))}px Inter, sans-serif`;
+        ctx.fillStyle = '#0f172a';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(room.name, centerX, centerY + (w > 80 && h > 60 ? 6 : 0));
+
+        // Area
+        if (h > 80) {
+          ctx.font = `${Math.max(8, Math.min(10, w / 11))}px Inter, sans-serif`;
+          ctx.fillStyle = '#334155';
+          ctx.fillText(`${(room.width * room.height).toFixed(1)} m²`, centerX, centerY + (w > 80 ? 20 : 12));
+        }
+      }
 
       // Selection handles + dimension annotations
       if (isSelected) {
