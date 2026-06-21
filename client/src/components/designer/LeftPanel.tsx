@@ -3,6 +3,7 @@ import { FURNITURE_CATALOG } from '@/types/designer';
 import type { Tool } from '@/types/designer';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { PLAN_TEMPLATES } from '@/lib/templates';
 
 const TOOL_BUTTONS: { tool: Tool; icon: string; label: string; shortcut: string }[] = [
   { tool: 'select', icon: '↖', label: 'Pasirinkti', shortcut: 'S' },
@@ -18,6 +19,7 @@ const FURNITURE_CATEGORIES = ['Miegamasis', 'Svetainė', 'Valgomasis', 'Virtuvė
 export default function LeftPanel() {
   const { state, dispatch } = useDesigner();
   const [furnitureCat, setFurnitureCat] = useState('Svetainė');
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const filteredFurniture = FURNITURE_CATALOG.filter(f => f.category === furnitureCat);
 
@@ -44,6 +46,41 @@ export default function LeftPanel() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Templates */}
+      <div className="p-3 border-b border-slate-700">
+        <button
+          onClick={() => setShowTemplates(v => !v)}
+          className="w-full text-xs px-3 py-2 rounded-lg bg-indigo-900/50 border border-indigo-700/50 text-indigo-300 hover:bg-indigo-800/50 hover:text-indigo-200 transition-all flex items-center justify-between"
+        >
+          <span>📐 Šablonai</span>
+          <span className="text-indigo-500">{showTemplates ? '▲' : '▼'}</span>
+        </button>
+        {showTemplates && (
+          <div className="mt-2 space-y-1.5">
+            {PLAN_TEMPLATES.map(t => (
+              <button
+                key={t.name}
+                onClick={() => {
+                  if (confirm(`Įkelti šabloną "${t.name}"? Dabartinis projektas bus prarastas.`)) {
+                    dispatch({ type: 'SET_PLAN', plan: t.plan });
+                    setShowTemplates(false);
+                  }
+                }}
+                className="w-full text-left px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-indigo-600 hover:bg-slate-750 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{t.icon}</span>
+                  <div>
+                    <div className="text-xs font-medium text-white">{t.name}</div>
+                    <div className="text-xs text-slate-500">{t.description}</div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Grid controls */}
