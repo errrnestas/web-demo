@@ -34,6 +34,7 @@ export default function FloorPlanCanvas() {
   const [dragging, setDragging] = useState<{ id: string; type: 'room' | 'furniture'; offX: number; offY: number } | null>(null);
   const [resizing, setResizing] = useState<{ id: string; handle: string; origRoom: Room } | null>(null);
   const [hoverInfo, setHoverInfo] = useState<string | null>(null);
+  const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
 
   useEffect(() => {
     function resize() {
@@ -127,7 +128,7 @@ export default function FloorPlanCanvas() {
       ctx.fillStyle = '#475569';
       ctx.fillText(`${room.width}m × ${room.height}m`, x + w / 2, y + h / 2 + 8);
 
-      // Selection handles
+      // Selection handles + dimension annotations
       if (isSelected) {
         const handles = [
           { x: x - 4, y: y - 4 }, { x: x + w / 2 - 4, y: y - 4 }, { x: x + w - 4, y: y - 4 },
@@ -135,9 +136,38 @@ export default function FloorPlanCanvas() {
           { x: x - 4, y: y + h - 4 }, { x: x + w / 2 - 4, y: y + h - 4 }, { x: x + w - 4, y: y + h - 4 },
         ];
         ctx.fillStyle = '#60a5fa';
-        for (const h of handles) {
-          ctx.fillRect(h.x, h.y, 8, 8);
-        }
+        for (const hh of handles) ctx.fillRect(hh.x, hh.y, 8, 8);
+
+        // Dimension lines
+        const offset = 18;
+        ctx.strokeStyle = '#60a5fa88';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 2]);
+
+        // Top dimension
+        ctx.beginPath(); ctx.moveTo(x, y - offset); ctx.lineTo(x + w, y - offset); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y - 2); ctx.lineTo(x, y - offset - 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + w, y - 2); ctx.lineTo(x + w, y - offset - 2); ctx.stroke();
+
+        // Left dimension
+        ctx.beginPath(); ctx.moveTo(x - offset, y); ctx.lineTo(x - offset, y + h); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x - offset - 2, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - 2, y + h); ctx.lineTo(x - offset - 2, y + h); ctx.stroke();
+
+        ctx.setLineDash([]);
+
+        // Dimension labels
+        ctx.fillStyle = '#93c5fd';
+        ctx.font = 'bold 11px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${room.width.toFixed(2)}m`, x + w / 2, y - offset);
+
+        ctx.save();
+        ctx.translate(x - offset, y + h / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(`${room.height.toFixed(2)}m`, 0, 0);
+        ctx.restore();
       }
     }
 
@@ -254,15 +284,7 @@ export default function FloorPlanCanvas() {
       ctx.restore();
     }
 
-    // Draw in-progress room
-    if (drawing && state.tool === 'room') {
-      const x = Math.min(drawing.startX, drawing.startX);
-      ctx.strokeStyle = '#60a5fa';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 3]);
-      ctx.strokeRect(drawing.startX, drawing.startY, 0, 0);
-      ctx.setLineDash([]);
-    }
+    // Drawing preview is handled in mousemove (live update)
 
     // Scale indicator
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -540,6 +562,59 @@ export default function FloorPlanCanvas() {
     return () => canvas.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
+  // Touch events for mobile pinch-to-zoom and pan
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        pinchRef.current = { dist, midX, midY };
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinchRef.current) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const newDist = Math.hypot(dx, dy);
+        const factor = newDist / pinchRef.current.dist;
+        const rect = canvas.getBoundingClientRect();
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+        setZoom(prevZoom => {
+          const newZoom = Math.max(0.2, Math.min(5, prevZoom * factor));
+          const sf = newZoom / prevZoom;
+          setPanOffset(prev => ({
+            x: midX - (midX - prev.x) * sf,
+            y: midY - (midY - prev.y) * sf,
+          }));
+          return newZoom;
+        });
+        pinchRef.current = { dist: newDist, midX, midY };
+      }
+    };
+
+    const onTouchEnd = () => { pinchRef.current = null; };
+
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
+
   const getCursor = () => {
     if (isPanning) return 'grabbing';
     if (dragging) return 'move';
@@ -565,6 +640,22 @@ export default function FloorPlanCanvas() {
         onMouseUp={handleMouseUp}
         onMouseLeave={() => { setDragging(null); setIsPanning(false); }}
       />
+      {/* PNG Export */}
+      <button
+        onClick={() => {
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          const link = document.createElement('a');
+          link.download = 'floor-plan.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        }}
+        className="absolute top-3 right-3 text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 backdrop-blur transition-all"
+        title="Eksportuoti kaip PNG"
+      >
+        📷 PNG
+      </button>
+
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-1">
         <button

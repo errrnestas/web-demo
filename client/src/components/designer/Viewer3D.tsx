@@ -1,6 +1,6 @@
 import { Suspense, useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Sky, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, Sky, PerspectiveCamera, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useDesigner } from '@/lib/designer-store';
 import type { Room, Door, WindowElement, FurnitureItem, FloorPlan } from '@/types/designer';
@@ -9,15 +9,31 @@ import { WALL_MATERIAL_COLORS, FLOOR_MATERIAL_COLORS } from '@/types/designer';
 const WALL_THICKNESS = 0.18;
 const WALL_HEIGHT = 2.6;
 
-function RoomFloor({ room }: { room: Room }) {
+function RoomFloor({ room, showLabels }: { room: Room; showLabels: boolean }) {
   const color = FLOOR_MATERIAL_COLORS[room.floorMaterial] || '#c8a26b';
   const roughness = room.floorMaterial === 'carpet' ? 0.95 : room.floorMaterial === 'marble' ? 0.05 : 0.7;
+  const cx = room.x + room.width / 2;
+  const cz = room.y + room.height / 2;
   return (
-    <mesh receiveShadow position={[room.x + room.width / 2, 0.01, room.y + room.height / 2]}>
-      <planeGeometry args={[room.width, room.height]} />
-      <meshStandardMaterial color={color} roughness={roughness} metalness={0.05} />
-      <primitive object={new THREE.Mesh()} />
-    </mesh>
+    <>
+      <mesh receiveShadow position={[cx, 0.01, cz]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[room.width, room.height]} />
+        <meshStandardMaterial color={color} roughness={roughness} metalness={0.05} />
+      </mesh>
+      {showLabels && (
+        <Text
+          position={[cx, 0.05, cz]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={Math.min(room.width, room.height) * 0.18}
+          color="#1e293b"
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={room.width * 0.9}
+        >
+          {room.name}
+        </Text>
+      )}
+    </>
   );
 }
 
@@ -449,17 +465,17 @@ function Ceiling({ plan }: { plan: FloorPlan }) {
   );
 }
 
-function HouseScene() {
+function HouseScene({ showLabels, showCeiling }: { showLabels: boolean; showCeiling: boolean }) {
   const { state } = useDesigner();
   const { plan } = state;
 
   return (
     <>
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.5} />
       <directionalLight
         castShadow
         position={[15, 20, 10]}
-        intensity={1.2}
+        intensity={1.0}
         shadow-mapSize={[2048, 2048]}
         shadow-camera-far={100}
         shadow-camera-left={-30}
@@ -467,19 +483,29 @@ function HouseScene() {
         shadow-camera-top={30}
         shadow-camera-bottom={-30}
       />
-      <pointLight position={[5, 2.2, 5]} intensity={0.4} color="#fff8e0" />
-      <pointLight position={[12, 2.2, 3]} intensity={0.3} color="#fff8e0" />
+
+      {/* Per-room ceiling lights */}
+      {plan.rooms.map(room => (
+        <pointLight
+          key={`light-${room.id}`}
+          position={[room.x + room.width / 2, plan.wallHeight - 0.2, room.y + room.height / 2]}
+          intensity={0.6}
+          color="#fff8e7"
+          distance={Math.max(room.width, room.height) * 2.5}
+          decay={2}
+        />
+      ))}
 
       {/* Ground */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[5, -0.005, 5]}>
-        <planeGeometry args={[60, 60]} />
-        <meshStandardMaterial color="#c8b89a" roughness={0.95} />
+        <planeGeometry args={[80, 80]} />
+        <meshStandardMaterial color="#8fa080" roughness={0.98} />
       </mesh>
 
       {/* Rooms */}
       {plan.rooms.map(room => (
         <group key={room.id}>
-          <RoomFloor room={room} />
+          <RoomFloor room={room} showLabels={showLabels} />
           <RoomWalls room={room} doors={plan.doors} windows={plan.windows} />
         </group>
       ))}
@@ -489,7 +515,7 @@ function HouseScene() {
         <FurnitureShape key={item.id} item={item} />
       ))}
 
-      <Ceiling plan={plan} />
+      {showCeiling && <Ceiling plan={plan} />}
     </>
   );
 }
@@ -562,6 +588,9 @@ export default function Viewer3D() {
   const { state } = useDesigner();
   const allRooms = state.plan.rooms;
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit');
+  const [showLabels, setShowLabels] = useState(true);
+  const [showCeiling, setShowCeiling] = useState(false);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   const center = useMemo(() => {
     if (allRooms.length === 0) return { x: 5, z: 5 };
@@ -575,11 +604,20 @@ export default function Viewer3D() {
   const orbitPos: [number, number, number] = [center.x - 8, 8, center.z + 12];
   const topPos: [number, number, number] = [center.x, 35, center.z];
 
+  const handleScreenshot = useCallback(() => {
+    const canvas = canvasContainerRef.current?.querySelector('canvas');
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = '3d-view.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }, []);
+
   return (
-    <div className="w-full h-full relative bg-slate-900">
+    <div className="w-full h-full relative bg-slate-900" ref={canvasContainerRef}>
       <Canvas
         shadows
-        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
+        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1, preserveDrawingBuffer: true }}
         dpr={[1, 2]}
       >
         {cameraMode !== 'walk' && (
@@ -596,7 +634,7 @@ export default function Viewer3D() {
         )}
         <Sky sunPosition={[100, 80, 100]} />
         <Suspense fallback={null}>
-          <HouseScene />
+          <HouseScene showLabels={showLabels} showCeiling={showCeiling} />
         </Suspense>
         {cameraMode === 'orbit' && (
           <OrbitControls
@@ -633,9 +671,35 @@ export default function Viewer3D() {
                 : 'text-slate-400 hover:text-white hover:bg-slate-700'
             }`}
           >
-            {mode === 'orbit' ? '🔄 Orbitavimas' : mode === 'top' ? '🗺️ Iš viršaus' : '🚶 Vaikščiojimas'}
+            {mode === 'orbit' ? '🔄 Orbita' : mode === 'top' ? '🗺️ Viršus' : '🚶 Vaikščioti'}
           </button>
         ))}
+      </div>
+
+      {/* View options */}
+      <div className="absolute top-4 right-4 flex flex-col gap-1.5">
+        <button
+          onClick={handleScreenshot}
+          className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 backdrop-blur transition-all"
+          title="Išsaugoti ekrano kopiją"
+        >
+          📷 PNG
+        </button>
+        <button
+          onClick={() => setShowLabels(v => !v)}
+          className={`text-xs px-2.5 py-1.5 rounded-lg backdrop-blur border transition-all ${showLabels ? 'bg-blue-700 border-blue-600 text-white' : 'bg-slate-800/90 border-slate-700 text-slate-400 hover:text-white'}`}
+        >
+          🏷️ Etiketės
+        </button>
+        <button
+          onClick={() => setShowCeiling(v => !v)}
+          className={`text-xs px-2.5 py-1.5 rounded-lg backdrop-blur border transition-all ${showCeiling ? 'bg-blue-700 border-blue-600 text-white' : 'bg-slate-800/90 border-slate-700 text-slate-400 hover:text-white'}`}
+        >
+          🏠 Lubos
+        </button>
+        <div className="text-xs text-slate-500 bg-slate-800/70 px-2.5 py-1.5 rounded-lg backdrop-blur border border-slate-700/50 text-center">
+          {state.plan.rooms.length}k · {state.plan.furniture.length}b
+        </div>
       </div>
 
       {cameraMode === 'walk' && (
@@ -650,10 +714,6 @@ export default function Viewer3D() {
           Kairė pelė — sukimas · Scroll — priartinimas · Dešinė pelė — judėjimas
         </div>
       )}
-
-      <div className="absolute top-4 right-4 text-xs text-slate-400 bg-slate-800/70 px-3 py-1.5 rounded-lg backdrop-blur border border-slate-700/50">
-        {state.plan.rooms.length} kambariai · {state.plan.furniture.length} baldai
-      </div>
     </div>
   );
 }
