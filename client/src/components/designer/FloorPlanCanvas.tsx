@@ -563,6 +563,35 @@ export default function FloorPlanCanvas() {
     }
   }, [isPanning, drawing, state, dispatch, canvasToWorld]);
 
+  const fitToView = useCallback(() => {
+    if (state.plan.rooms.length === 0) { setZoom(1); setPanOffset({ x: 40, y: 40 }); return; }
+    const minX = Math.min(...state.plan.rooms.map(r => r.x));
+    const maxX = Math.max(...state.plan.rooms.map(r => r.x + r.width));
+    const minY = Math.min(...state.plan.rooms.map(r => r.y));
+    const maxY = Math.max(...state.plan.rooms.map(r => r.y + r.height));
+    const pw = canvasSize.w - 80;
+    const ph = canvasSize.h - 80;
+    const bw = maxX - minX;
+    const bh = maxY - minY;
+    if (bw <= 0 || bh <= 0) return;
+    const newZoom = Math.max(0.2, Math.min(3, Math.min(pw / bw, ph / bh) / BASE_SCALE));
+    const s = BASE_SCALE * newZoom;
+    setPanOffset({
+      x: (canvasSize.w - bw * s) / 2 - minX * s,
+      y: (canvasSize.h - bh * s) / 2 - minY * s,
+    });
+    setZoom(newZoom);
+  }, [state.plan.rooms, canvasSize]);
+
+  // Auto fit when plan changes significantly (room count changes)
+  const prevRoomCount = useRef(state.plan.rooms.length);
+  useEffect(() => {
+    if (Math.abs(state.plan.rooms.length - prevRoomCount.current) > 2) {
+      fitToView();
+    }
+    prevRoomCount.current = state.plan.rooms.length;
+  }, [state.plan.rooms.length, fitToView]);
+
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
@@ -698,9 +727,9 @@ export default function FloorPlanCanvas() {
           className="w-8 h-8 bg-slate-800/90 border border-slate-700 text-white rounded-lg flex items-center justify-center hover:bg-slate-700 text-sm font-bold backdrop-blur transition-all"
         >−</button>
         <button
-          onClick={() => { setZoom(1); setPanOffset({ x: 40, y: 40 }); }}
+          onClick={fitToView}
           className="w-8 h-8 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-lg flex items-center justify-center hover:bg-slate-700 backdrop-blur transition-all"
-          title="Atstatyti vaizdą"
+          title="Rodyti visą projektą (F)"
         >⊙</button>
       </div>
       {/* Hint */}
