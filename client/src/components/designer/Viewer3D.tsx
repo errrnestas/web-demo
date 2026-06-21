@@ -970,6 +970,33 @@ function Ceiling({ plan }: { plan: FloorPlan }) {
   );
 }
 
+function CeilingLight({ room, wallHeight }: { room: Room; wallHeight: number }) {
+  const cx = room.x + room.width / 2;
+  const cz = room.y + room.height / 2;
+  const cordLen = 0.28;
+  const bulbY = wallHeight - cordLen - 0.14;
+  return (
+    <group position={[cx, 0, cz]}>
+      <mesh castShadow position={[0, wallHeight - 0.025, 0]}>
+        <cylinderGeometry args={[0.09, 0.09, 0.05, 12]} />
+        <meshStandardMaterial color="#c8c4c0" roughness={0.35} metalness={0.4} />
+      </mesh>
+      <mesh position={[0, wallHeight - 0.05 - cordLen / 2, 0]}>
+        <cylinderGeometry args={[0.006, 0.006, cordLen, 4]} />
+        <meshStandardMaterial color="#555" roughness={0.9} />
+      </mesh>
+      <mesh castShadow position={[0, bulbY, 0]}>
+        <sphereGeometry args={[0.13, 12, 8]} />
+        <meshStandardMaterial color="#fffaf0" emissive="#ffee99" emissiveIntensity={0.7} roughness={0.05} transparent opacity={0.88} />
+      </mesh>
+      <mesh position={[0, bulbY - 0.12, 0]}>
+        <torusGeometry args={[0.08, 0.012, 6, 16]} />
+        <meshStandardMaterial color="#c8c4c0" roughness={0.35} metalness={0.4} />
+      </mesh>
+    </group>
+  );
+}
+
 function HouseScene({ showLabels, showCeiling, lighting }: { showLabels: boolean; showCeiling: boolean; lighting: LightingPreset }) {
   const { state, dispatch } = useDesigner();
   const { plan } = state;
@@ -1027,6 +1054,11 @@ function HouseScene({ showLabels, showCeiling, lighting }: { showLabels: boolean
       {/* Furniture */}
       {plan.furniture.map(item => (
         <FurnitureShape key={item.id} item={item} selectedId={state.selectedId} onSelect={select} />
+      ))}
+
+      {/* Ceiling light fixtures */}
+      {plan.rooms.map(room => (
+        <CeilingLight key={`clf-${room.id}`} room={room} wallHeight={plan.wallHeight} />
       ))}
 
       {showCeiling && <Ceiling plan={plan} />}

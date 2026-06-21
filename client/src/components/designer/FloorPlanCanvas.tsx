@@ -139,6 +139,9 @@ export default function FloorPlanCanvas() {
   const guideLinesRef = useRef<{ vertX: number | null; horizY: number | null }>({ vertX: null, horizY: null });
   const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
   const [measureStart, setMeasureStart] = useState<{ x: number; y: number } | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renamingPos, setRenamingPos] = useState<{ x: number; y: number } | null>(null);
+  const [renamingVal, setRenamingVal] = useState('');
 
   useEffect(() => {
     function resize() {
@@ -1251,6 +1254,35 @@ export default function FloorPlanCanvas() {
     }
   }, [isPanning, drawing, state, dispatch, canvasToWorld]);
 
+  const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (state.tool !== 'select') return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const pos = getPointerPos(canvas, e);
+    const world = canvasToWorld(pos.x, pos.y);
+    const room = [...state.plan.rooms].reverse().find(r =>
+      world.x >= r.x && world.x <= r.x + r.width && world.y >= r.y && world.y <= r.y + r.height
+    );
+    if (room) {
+      dispatch({ type: 'SELECT', id: room.id });
+      const { x: cx, y: cy } = worldToCanvas(room.x + room.width / 2, room.y + room.height / 2);
+      setRenamingId(room.id);
+      setRenamingPos({ x: cx, y: cy });
+      setRenamingVal(room.name);
+    }
+  }, [state, canvasToWorld, worldToCanvas, dispatch]);
+
+  const commitRename = useCallback(() => {
+    if (renamingId) {
+      const room = state.plan.rooms.find(r => r.id === renamingId);
+      if (room && renamingVal.trim()) {
+        dispatch({ type: 'UPDATE_ROOM', room: { ...room, name: renamingVal.trim() } });
+      }
+    }
+    setRenamingId(null);
+    setRenamingPos(null);
+  }, [renamingId, renamingVal, state.plan.rooms, dispatch]);
+
   const fitToView = useCallback(() => {
     if (state.plan.rooms.length === 0) { setZoom(1); setPanOffset({ x: 40, y: 40 }); return; }
     const minX = Math.min(...state.plan.rooms.map(r => r.x));
@@ -1421,6 +1453,7 @@ export default function FloorPlanCanvas() {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
         onMouseLeave={() => { setDragging(null); setIsPanning(false); guideLinesRef.current = { vertX: null, horizY: null }; if (tooltipRef.current) tooltipRef.current.style.display = 'none'; }}
       />
       {/* Hover tooltip */}
@@ -1429,6 +1462,22 @@ export default function FloorPlanCanvas() {
         className="absolute pointer-events-none z-10 bg-slate-900/95 text-white text-xs px-2 py-1 rounded-lg shadow-lg border border-slate-700 whitespace-nowrap"
         style={{ display: 'none' }}
       />
+      {/* Inline room rename input (double-click) */}
+      {renamingId && renamingPos && (
+        <div className="absolute z-20" style={{ left: renamingPos.x, top: renamingPos.y, transform: 'translate(-50%, -50%)' }}>
+          <input
+            autoFocus
+            value={renamingVal}
+            onChange={e => setRenamingVal(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={e => {
+              if (e.key === 'Enter') commitRename();
+              if (e.key === 'Escape') { setRenamingId(null); setRenamingPos(null); }
+            }}
+            className="bg-slate-800/95 border-2 border-blue-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg shadow-xl outline-none text-center min-w-[140px] max-w-[220px]"
+          />
+        </div>
+      )}
       {/* Export buttons */}
       <div className="absolute top-3 right-3 flex gap-1.5">
         <button
