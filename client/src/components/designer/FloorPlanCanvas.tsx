@@ -497,6 +497,33 @@ export default function FloorPlanCanvas() {
           ctx.beginPath(); ctx.moveTo(-fw / 2, 0); ctx.lineTo(fw / 2, 0); ctx.stroke();
           break;
         }
+        case 'staircase': {
+          // Step lines
+          ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1;
+          const steps = 8;
+          for (let i = 0; i <= steps; i++) {
+            const ly = -fd / 2 + (fd / steps) * i;
+            ctx.beginPath(); ctx.moveTo(-fw / 2, ly); ctx.lineTo(fw / 2, ly); ctx.stroke();
+          }
+          // Direction arrow
+          ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(0, -fd / 2 + 4);
+          ctx.lineTo(0, fd / 2 - 4);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(-4, fd / 2 - 10);
+          ctx.lineTo(0, fd / 2 - 4);
+          ctx.lineTo(4, fd / 2 - 10);
+          ctx.stroke();
+          break;
+        }
+        case 'column': {
+          ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(0, 0, Math.min(fw, fd) / 2 - 2, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(0, 0, Math.min(fw, fd) / 4, 0, Math.PI * 2); ctx.stroke();
+          break;
+        }
       }
 
       // Name label (small, only if large enough)

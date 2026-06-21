@@ -43,7 +43,8 @@ export type FurnitureType =
   | 'wardrobe' | 'bookshelf' | 'kitchen-counter' | 'sink'
   | 'bathtub' | 'toilet' | 'shower' | 'tv-stand' | 'plant'
   | 'stove' | 'refrigerator' | 'washing-machine' | 'office-chair'
-  | 'nightstand' | 'dresser' | 'rug' | 'fireplace';
+  | 'nightstand' | 'dresser' | 'rug' | 'fireplace'
+  | 'staircase' | 'column';
 
 export interface FurnitureItem {
   id: string;
@@ -145,4 +146,6 @@ export const FURNITURE_CATALOG: Array<{
   { type: 'office-chair', name: 'Biuro kėdė', width: 0.65, depth: 0.65, color: '#2a2a2a', category: 'Kabinetas' },
   { type: 'nightstand', name: 'Naktinė spintelė', width: 0.5, depth: 0.45, color: '#8b6914', category: 'Miegamasis' },
   { type: 'dresser', name: 'Komoda', width: 1.2, depth: 0.5, color: '#8b6914', category: 'Miegamasis' },
+  { type: 'staircase', name: 'Laiptai', width: 1.0, depth: 2.5, color: '#b0956a', category: 'Kita' },
+  { type: 'column', name: 'Kolona', width: 0.3, depth: 0.3, color: '#9e9e9e', category: 'Kita' },
 ];

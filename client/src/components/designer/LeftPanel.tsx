@@ -14,7 +14,7 @@ const TOOL_BUTTONS: { tool: Tool; icon: string; label: string; shortcut: string 
   { tool: 'delete', icon: '🗑', label: 'Ištrinti', shortcut: 'Del' },
 ];
 
-const FURNITURE_CATEGORIES = ['Miegamasis', 'Svetainė', 'Valgomasis', 'Virtuvė', 'Kabinetas', 'Vonios kambarys', 'Dekoracijos'];
+const FURNITURE_CATEGORIES = ['Miegamasis', 'Svetainė', 'Valgomasis', 'Virtuvė', 'Kabinetas', 'Vonios kambarys', 'Dekoracijos', 'Kita'];
 
 export default function LeftPanel() {
   const { state, dispatch } = useDesigner();

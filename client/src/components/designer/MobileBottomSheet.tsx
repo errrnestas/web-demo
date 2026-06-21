@@ -13,7 +13,7 @@ const TOOLS: { tool: Tool; icon: string; label: string }[] = [
   { tool: 'delete', icon: '🗑', label: 'Ištrinti' },
 ];
 
-const FURNITURE_CATEGORIES = ['Miegamasis', 'Svetainė', 'Valgomasis', 'Virtuvė', 'Kabinetas', 'Vonios kambarys', 'Dekoracijos'];
+const FURNITURE_CATEGORIES = ['Miegamasis', 'Svetainė', 'Valgomasis', 'Virtuvė', 'Kabinetas', 'Vonios kambarys', 'Dekoracijos', 'Kita'];
 
 export default function MobileBottomSheet() {
   const { state, dispatch } = useDesigner();

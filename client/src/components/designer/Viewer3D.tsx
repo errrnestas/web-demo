@@ -705,6 +705,30 @@ function FurnitureShape({ item }: { item: FurnitureItem }) {
       </mesh>);
       break;
     }
+    case 'staircase': {
+      const steps = 10;
+      const stepH = 2.4 / steps;
+      const stepD = item.depth / steps;
+      for (let i = 0; i < steps; i++) {
+        shapes.push(<mesh key={`step${i}`} castShadow receiveShadow position={[0, i * stepH + stepH / 2, -item.depth / 2 + i * stepD + stepD / 2]}>
+          <boxGeometry args={[item.width, stepH, stepD]} />
+          <meshStandardMaterial color={item.color} roughness={0.7} />
+        </mesh>);
+      }
+      // Railing
+      shapes.push(<mesh key="rail-l" castShadow position={[-item.width / 2 + 0.04, 1.2, 0]}>
+        <boxGeometry args={[0.04, 2.4, item.depth]} />
+        <meshStandardMaterial color="#8b6914" roughness={0.5} />
+      </mesh>);
+      break;
+    }
+    case 'column': {
+      shapes.push(<mesh key="col" castShadow receiveShadow position={[0, 1.3, 0]}>
+        <cylinderGeometry args={[item.width / 2, item.width / 2, 2.6, 12]} />
+        <meshStandardMaterial color={item.color} roughness={0.3} />
+      </mesh>);
+      break;
+    }
     case 'fireplace': {
       shapes.push(<mesh key="body" castShadow receiveShadow position={[0, 0.6, 0]}>
         <boxGeometry args={[item.width, 1.2, item.depth]} />
