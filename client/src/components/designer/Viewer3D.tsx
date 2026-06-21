@@ -52,9 +52,9 @@ function WallSegment({
   );
 }
 
-function RoomWalls({ room, doors, windows }: { room: Room; doors: Door[]; windows: WindowElement[] }) {
+function RoomWalls({ room, doors, windows, wallHeight }: { room: Room; doors: Door[]; windows: WindowElement[]; wallHeight: number }) {
   const wc = WALL_MATERIAL_COLORS[room.wallMaterial] || '#f8f8f8';
-  const wh = WALL_HEIGHT;
+  const wh = wallHeight;
   const wt = WALL_THICKNESS;
 
   const roomDoors = doors.filter(d => d.roomId === room.id);
@@ -452,13 +452,16 @@ function FurnitureShape({ item }: { item: FurnitureItem }) {
 }
 
 function Ceiling({ plan }: { plan: FloorPlan }) {
-  const rooms = plan.rooms;
   return (
     <>
-      {rooms.map(room => (
-        <mesh key={room.id} position={[room.x + room.width / 2, WALL_HEIGHT, room.y + room.height / 2]} receiveShadow>
+      {plan.rooms.map(room => (
+        <mesh key={room.id}
+          position={[room.x + room.width / 2, plan.wallHeight, room.y + room.height / 2]}
+          rotation={[Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
           <planeGeometry args={[room.width, room.height]} />
-          <meshStandardMaterial color="#f5f5f5" side={THREE.DoubleSide} roughness={0.9} />
+          <meshStandardMaterial color="#f8f8f5" side={THREE.BackSide} roughness={0.95} />
         </mesh>
       ))}
     </>
@@ -506,7 +509,7 @@ function HouseScene({ showLabels, showCeiling }: { showLabels: boolean; showCeil
       {plan.rooms.map(room => (
         <group key={room.id}>
           <RoomFloor room={room} showLabels={showLabels} />
-          <RoomWalls room={room} doors={plan.doors} windows={plan.windows} />
+          <RoomWalls room={room} doors={plan.doors} windows={plan.windows} wallHeight={plan.wallHeight} />
         </group>
       ))}
 
