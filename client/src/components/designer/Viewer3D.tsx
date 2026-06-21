@@ -9,16 +9,163 @@ import { WALL_MATERIAL_COLORS, FLOOR_MATERIAL_COLORS } from '@/types/designer';
 const WALL_THICKNESS = 0.18;
 const WALL_HEIGHT = 2.6;
 
+function createFloorTexture(material: string, baseColor: string): THREE.CanvasTexture {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(0, 0, size, size);
+
+  if (material === 'wood') {
+    const lineCount = 18;
+    for (let i = 0; i < lineCount; i++) {
+      const y = (i / lineCount) * size;
+      const h = (size / lineCount) * 0.7;
+      ctx.fillStyle = `rgba(0,0,0,${0.04 + (i % 2) * 0.06})`;
+      ctx.fillRect(0, y, size, h);
+      // grain lines
+      ctx.strokeStyle = `rgba(0,0,0,0.04)`;
+      ctx.lineWidth = 1;
+      for (let j = 0; j < 6; j++) {
+        const ly = y + (h / 6) * j;
+        ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(size, ly); ctx.stroke();
+      }
+    }
+    // subtle knot
+    const grd = ctx.createRadialGradient(size * 0.7, size * 0.3, 0, size * 0.7, size * 0.3, size * 0.08);
+    grd.addColorStop(0, 'rgba(0,0,0,0.12)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, size, size);
+  } else if (material === 'tile') {
+    const tileSize = 80;
+    ctx.strokeStyle = 'rgba(180,180,180,0.7)';
+    ctx.lineWidth = 3;
+    for (let x = 0; x <= size; x += tileSize) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, size); ctx.stroke();
+    }
+    for (let y = 0; y <= size; y += tileSize) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
+    }
+    // subtle tile variation
+    for (let tx = 0; tx < size; tx += tileSize) {
+      for (let ty = 0; ty < size; ty += tileSize) {
+        if ((tx / tileSize + ty / tileSize) % 2 === 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.04)';
+          ctx.fillRect(tx + 3, ty + 3, tileSize - 6, tileSize - 6);
+        }
+      }
+    }
+  } else if (material === 'marble') {
+    // Marble vein effect
+    ctx.globalAlpha = 0.15;
+    for (let i = 0; i < 8; i++) {
+      ctx.strokeStyle = `rgba(255,255,255,0.6)`;
+      ctx.lineWidth = 1 + i * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(i * 60, 0);
+      ctx.bezierCurveTo(100 + i * 20, 100, 200 - i * 15, 300, 400 + i * 10, size);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  } else if (material === 'carpet') {
+    // Subtle carpet texture - small dots
+    for (let i = 0; i < 2000; i++) {
+      const x = Math.floor((i * 137) % size);
+      const y = Math.floor((i * 251) % size);
+      ctx.fillStyle = `rgba(0,0,0,${0.05 + ((i * 17) % 10) * 0.005})`;
+      ctx.fillRect(x, y, 2, 2);
+    }
+  } else if (material === 'concrete') {
+    // Concrete - subtle noise
+    for (let i = 0; i < 3000; i++) {
+      const x = (i * 137) % size;
+      const y = (i * 251) % size;
+      const a = 0.02 + ((i * 13) % 20) * 0.002;
+      ctx.fillStyle = `rgba(0,0,0,${a})`;
+      ctx.fillRect(x, y, 2, 2);
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(3, 3);
+  return texture;
+}
+
+function createWallTexture(material: string): THREE.CanvasTexture {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  if (material === 'brick') {
+    ctx.fillStyle = '#c45c3a'; ctx.fillRect(0, 0, size, size);
+    const bw = 96, bh = 40, grout = 6;
+    ctx.fillStyle = '#d4a088';
+    for (let row = 0; row * (bh + grout) < size; row++) {
+      const offset = row % 2 === 0 ? 0 : (bw + grout) / 2;
+      for (let col = -1; col * (bw + grout) < size; col++) {
+        const x = col * (bw + grout) + offset;
+        const y = row * (bh + grout);
+        ctx.fillStyle = `hsl(${15 + ((col * 3 + row * 7) % 10)}, ${50 + (col * 7 + row * 3) % 15}%, ${40 + (col + row * 2) % 10}%)`;
+        ctx.fillRect(x + grout / 2, y + grout / 2, bw, bh);
+      }
+    }
+    ctx.strokeStyle = '#b8a090'; ctx.lineWidth = grout;
+    for (let row = 0; row * (bh + grout) < size; row++) {
+      ctx.beginPath(); ctx.moveTo(0, row * (bh + grout)); ctx.lineTo(size, row * (bh + grout)); ctx.stroke();
+      const offset = row % 2 === 0 ? 0 : (bw + grout) / 2;
+      for (let col = -1; col * (bw + grout) < size; col++) {
+        const x = col * (bw + grout) + offset + bw + grout;
+        ctx.beginPath(); ctx.moveTo(x, row * (bh + grout)); ctx.lineTo(x, row * (bh + grout) + bh + grout); ctx.stroke();
+      }
+    }
+  } else if (material === 'wood-panel') {
+    ctx.fillStyle = '#c8a060'; ctx.fillRect(0, 0, size, size);
+    const paneW = 64;
+    for (let col = 0; col * paneW < size; col++) {
+      ctx.fillStyle = col % 2 === 0 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(col * paneW, 0, paneW - 4, size);
+      // grain lines
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = 'rgba(0,0,0,0.03)';
+        ctx.fillRect(col * paneW + i * 8, 0, 2, size);
+      }
+      // panel separator
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(col * paneW + paneW - 4, 0, 4, size);
+    }
+  } else {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, size, size);
+    // subtle stippling
+    for (let i = 0; i < 1500; i++) {
+      const x = (i * 137) % size;
+      const y = (i * 251) % size;
+      ctx.fillStyle = `rgba(0,0,0,${0.015 + ((i * 7) % 5) * 0.003})`;
+      ctx.fillRect(x, y, 2, 2);
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 1);
+  return texture;
+}
+
 function RoomFloor({ room, showLabels }: { room: Room; showLabels: boolean }) {
   const color = FLOOR_MATERIAL_COLORS[room.floorMaterial] || '#c8a26b';
-  const roughness = room.floorMaterial === 'carpet' ? 0.95 : room.floorMaterial === 'marble' ? 0.05 : 0.7;
+  const roughness = room.floorMaterial === 'carpet' ? 0.95 : room.floorMaterial === 'marble' ? 0.05 : room.floorMaterial === 'vinyl' ? 0.4 : 0.7;
+  const metalness = room.floorMaterial === 'marble' ? 0.1 : 0.0;
   const cx = room.x + room.width / 2;
   const cz = room.y + room.height / 2;
+  const texture = useMemo(() => createFloorTexture(room.floorMaterial, color), [room.floorMaterial, color]);
+
   return (
     <>
       <mesh receiveShadow position={[cx, 0.01, cz]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[room.width, room.height]} />
-        <meshStandardMaterial color={color} roughness={roughness} metalness={0.05} />
+        <meshStandardMaterial color={color} map={texture} roughness={roughness} metalness={metalness} />
       </mesh>
       {showLabels && (
         <Text
@@ -38,16 +185,29 @@ function RoomFloor({ room, showLabels }: { room: Room; showLabels: boolean }) {
 }
 
 function WallSegment({
-  x, y, z, width, height, depth, color, roughness = 0.8
+  x, y, z, width, height, depth, color, roughness = 0.8, wallMaterial
 }: {
   x: number; y: number; z: number;
   width: number; height: number; depth: number;
   color: string; roughness?: number;
+  wallMaterial?: string;
 }) {
+  const texture = useMemo(() => {
+    if (wallMaterial === 'brick' || wallMaterial === 'wood-panel') {
+      return createWallTexture(wallMaterial);
+    }
+    return null;
+  }, [wallMaterial]);
+
   return (
     <mesh castShadow receiveShadow position={[x, y, z]}>
       <boxGeometry args={[width, height, depth]} />
-      <meshStandardMaterial color={color} roughness={roughness} metalness={0.02} />
+      <meshStandardMaterial
+        color={color}
+        map={texture ?? undefined}
+        roughness={roughness}
+        metalness={0.02}
+      />
     </mesh>
   );
 }
@@ -162,6 +322,7 @@ function RoomWalls({ room, doors, windows, wallHeight }: { room: Room; doors: Do
               height={segH}
               depth={wt}
               color={wc}
+              wallMaterial={room.wallMaterial}
             />
           );
         } else {
@@ -176,6 +337,7 @@ function RoomWalls({ room, doors, windows, wallHeight }: { room: Room; doors: Do
               height={segH}
               depth={segLen}
               color={wc}
+              wallMaterial={room.wallMaterial}
             />
           );
         }
