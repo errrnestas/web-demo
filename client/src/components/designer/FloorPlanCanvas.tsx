@@ -21,6 +21,10 @@ function getPointerPos(canvas: HTMLCanvasElement, e: React.MouseEvent | React.To
   };
 }
 
+type DragState =
+  | { id: string; type: 'room' | 'furniture'; offX: number; offY: number }
+  | { id: string; type: 'door' | 'window'; room: Room };
+
 export default function FloorPlanCanvas() {
   const { state, dispatch } = useDesigner();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -31,7 +35,7 @@ export default function FloorPlanCanvas() {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [drawing, setDrawing] = useState<{ startX: number; startY: number } | null>(null);
-  const [dragging, setDragging] = useState<{ id: string; type: 'room' | 'furniture'; offX: number; offY: number } | null>(null);
+  const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<{ id: string; handle: string; origRoom: Room } | null>(null);
   const [hoverInfo, setHoverInfo] = useState<string | null>(null);
   const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
@@ -106,22 +110,69 @@ export default function FloorPlanCanvas() {
       office: '💻', hallway: '🚪', garage: '🚗', other: '📦',
     };
 
-    // Draw rooms
+    // Draw rooms — floor fills first, then walls/outlines
+    for (const room of plan.rooms) {
+      const { x, y } = worldToCanvas(room.x, room.y);
+      const w = room.width * scaleRef.current;
+      const h = room.height * scaleRef.current;
+
+      // Floor fill
+      const roomFillColor = room.floorColor || ROOM_COLORS[room.type];
+      ctx.fillStyle = roomFillColor + 'cc';
+      ctx.fillRect(x, y, w, h);
+    }
+
+    // Detect whether a wall side of a room is shared with an adjacent room that has a smaller ID.
+    // The room with the smaller ID "owns" drawing that shared wall.
+    const shouldSkipWallSide = (room: Room, side: 'top' | 'right' | 'bottom' | 'left'): boolean => {
+      const EPSILON = 0.06;
+      for (const other of plan.rooms) {
+        if (other.id >= room.id) continue;
+        let shared = false;
+        if (side === 'top') {
+          shared = Math.abs(other.y + other.height - room.y) < EPSILON
+            && other.x < room.x + room.width - EPSILON && other.x + other.width > room.x + EPSILON;
+        } else if (side === 'bottom') {
+          shared = Math.abs(other.y - (room.y + room.height)) < EPSILON
+            && other.x < room.x + room.width - EPSILON && other.x + other.width > room.x + EPSILON;
+        } else if (side === 'left') {
+          shared = Math.abs(other.x + other.width - room.x) < EPSILON
+            && other.y < room.y + room.height - EPSILON && other.y + other.height > room.y + EPSILON;
+        } else {
+          shared = Math.abs(other.x - (room.x + room.width)) < EPSILON
+            && other.y < room.y + room.height - EPSILON && other.y + other.height > room.y + EPSILON;
+        }
+        if (shared) return true;
+      }
+      return false;
+    };
+
+    // Draw room walls as strokes over fills (prevents double-wall visual artifact)
     for (const room of plan.rooms) {
       const { x, y } = worldToCanvas(room.x, room.y);
       const w = room.width * scaleRef.current;
       const h = room.height * scaleRef.current;
       const isSelected = room.id === selectedId;
-      const wallPx = Math.max(4, Math.min(8, scaleRef.current * 0.12));
+      const wallPx = Math.max(3, Math.min(7, scaleRef.current * 0.1));
 
-      // Wall background (dark grey)
-      ctx.fillStyle = isSelected ? '#1e40af' : '#1e293b';
-      ctx.fillRect(x, y, w, h);
-
-      // Floor fill (inner, inset by wall thickness)
-      const roomFillColor = room.floorColor || ROOM_COLORS[room.type];
-      ctx.fillStyle = roomFillColor + 'cc';
-      ctx.fillRect(x + wallPx, y + wallPx, w - wallPx * 2, h - wallPx * 2);
+      // Draw each wall side individually; skip shared sides to avoid double-wall artifact
+      ctx.lineWidth = wallPx;
+      ctx.lineCap = 'square';
+      const wallColor = isSelected ? '#3b82f6' : '#1e293b';
+      const wallSides = [
+        { side: 'top' as const,    x1: x,     y1: y,     x2: x + w, y2: y     },
+        { side: 'right' as const,  x1: x + w, y1: y,     x2: x + w, y2: y + h },
+        { side: 'bottom' as const, x1: x,     y1: y + h, x2: x + w, y2: y + h },
+        { side: 'left' as const,   x1: x,     y1: y,     x2: x,     y2: y + h },
+      ];
+      for (const { side, x1, y1, x2, y2 } of wallSides) {
+        if (!isSelected && shouldSkipWallSide(room, side)) continue;
+        ctx.strokeStyle = wallColor;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
 
       // Selection glow
       if (isSelected) {
@@ -691,7 +742,31 @@ export default function FloorPlanCanvas() {
         }
         return false;
       });
-      if (door) { dispatch({ type: 'SELECT', id: door.id }); return; }
+      if (door) {
+        dispatch({ type: 'SELECT', id: door.id });
+        const doorRoom = state.plan.rooms.find(r => r.id === door.roomId);
+        if (doorRoom) setDragging({ id: door.id, type: 'door', room: doorRoom });
+        return;
+      }
+
+      const win = state.plan.windows.find(w => {
+        const r = state.plan.rooms.find(r => r.id === w.roomId);
+        if (!r) return false;
+        const hw = w.width / 2 + 0.15;
+        switch (w.wall) {
+          case 'top':    return Math.abs(world.y - r.y) < 0.3 && Math.abs(world.x - (r.x + r.width * w.position)) < hw;
+          case 'bottom': return Math.abs(world.y - (r.y + r.height)) < 0.3 && Math.abs(world.x - (r.x + r.width * w.position)) < hw;
+          case 'left':   return Math.abs(world.x - r.x) < 0.3 && Math.abs(world.y - (r.y + r.height * w.position)) < hw;
+          case 'right':  return Math.abs(world.x - (r.x + r.width)) < 0.3 && Math.abs(world.y - (r.y + r.height * w.position)) < hw;
+          default: return false;
+        }
+      });
+      if (win) {
+        dispatch({ type: 'SELECT', id: win.id });
+        const winRoom = state.plan.rooms.find(r => r.id === win.roomId);
+        if (winRoom) setDragging({ id: win.id, type: 'window', room: winRoom });
+        return;
+      }
 
       dispatch({ type: 'SELECT', id: null });
 
@@ -817,7 +892,35 @@ export default function FloorPlanCanvas() {
       return;
     }
 
-    if (dragging) {
+    if (dragging?.type === 'door') {
+      const d = state.plan.doors.find(dd => dd.id === dragging.id);
+      if (d) {
+        const r = dragging.room;
+        let pos: number;
+        if (d.wall === 'top' || d.wall === 'bottom') {
+          pos = (world.x - r.x - d.width / 2) / Math.max(0.1, r.width - d.width);
+        } else {
+          pos = (world.y - r.y - d.width / 2) / Math.max(0.1, r.height - d.width);
+        }
+        dispatch({ type: 'UPDATE_DOOR', door: { ...d, position: Math.max(0, Math.min(1, pos)) } });
+      }
+    }
+
+    if (dragging?.type === 'window') {
+      const w = state.plan.windows.find(ww => ww.id === dragging.id);
+      if (w) {
+        const r = dragging.room;
+        let pos: number;
+        if (w.wall === 'top' || w.wall === 'bottom') {
+          pos = (world.x - r.x) / r.width;
+        } else {
+          pos = (world.y - r.y) / r.height;
+        }
+        dispatch({ type: 'UPDATE_WINDOW', win: { ...w, position: Math.max(0.05, Math.min(0.95, pos)) } });
+      }
+    }
+
+    if (dragging && (dragging.type === 'room' || dragging.type === 'furniture')) {
       let sx = snapTo(world.x - dragging.offX, state.gridSize, state.snapToGrid);
       let sy = snapTo(world.y - dragging.offY, state.gridSize, state.snapToGrid);
 

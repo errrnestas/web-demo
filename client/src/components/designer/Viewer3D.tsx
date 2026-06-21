@@ -153,7 +153,8 @@ function createWallTexture(material: string): THREE.CanvasTexture {
   return texture;
 }
 
-function RoomFloor({ room, showLabels }: { room: Room; showLabels: boolean }) {
+function RoomFloor({ room, showLabels, selectedId, onSelect }: { room: Room; showLabels: boolean; selectedId: string | null; onSelect: (id: string | null) => void }) {
+  const isSelected = selectedId === room.id;
   const color = room.floorColor || FLOOR_MATERIAL_COLORS[room.floorMaterial] || '#c8a26b';
   const roughness = room.floorMaterial === 'carpet' ? 0.95 : room.floorMaterial === 'marble' ? 0.05 : room.floorMaterial === 'vinyl' ? 0.4 : 0.7;
   const metalness = room.floorMaterial === 'marble' ? 0.1 : 0.0;
@@ -163,10 +164,30 @@ function RoomFloor({ room, showLabels }: { room: Room; showLabels: boolean }) {
 
   return (
     <>
-      <mesh receiveShadow position={[cx, 0.01, cz]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh
+        receiveShadow
+        position={[cx, 0.01, cz]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        onClick={(e) => { if (!document.pointerLockElement) { e.stopPropagation(); onSelect(room.id); } }}
+        onPointerOver={(e) => { if (!document.pointerLockElement) { e.stopPropagation(); document.body.style.cursor = 'pointer'; } }}
+        onPointerOut={() => { document.body.style.cursor = 'auto'; }}
+      >
         <planeGeometry args={[room.width, room.height]} />
-        <meshStandardMaterial color={color} map={texture} roughness={roughness} metalness={metalness} />
+        <meshStandardMaterial
+          color={color}
+          map={texture}
+          roughness={roughness}
+          metalness={metalness}
+          emissive={isSelected ? '#2563eb' : '#000000'}
+          emissiveIntensity={isSelected ? 0.14 : 0}
+        />
       </mesh>
+      {isSelected && (
+        <mesh position={[cx, 0.02, cz]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[room.width, room.height]} />
+          <meshBasicMaterial color="#3b82f6" transparent opacity={0.12} />
+        </mesh>
+      )}
       {showLabels && (
         <Text
           position={[cx, 0.05, cz]}
@@ -257,10 +278,10 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
       const wallWindows = roomWindows.filter(w => w.wall === wall);
 
       // Collect all openings and sort by position
-      const openings: { start: number; end: number; type: 'door' | 'window'; topY?: number }[] = [];
+      const openings: { start: number; end: number; type: 'door' | 'window'; topY?: number; door?: Door }[] = [];
       for (const d of wallDoors) {
         const start = d.position * (wallLength - d.width);
-        openings.push({ start, end: start + d.width, type: 'door' });
+        openings.push({ start, end: start + d.width, type: 'door', door: d });
       }
       for (const w of wallWindows) {
         const start = w.position * wallLength - w.width / 2;
@@ -318,8 +339,52 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
                 </mesh>
               );
             }
-          } else {
-            // Door: no wall segment (gap)
+          } else if (op.door) {
+            // Door gap + swung-open door panel
+            const d = op.door;
+            const doorH = Math.min(2.1, wh * 0.88);
+            const panelT = 0.04;
+            const doorW = op.end - op.start;
+
+            if (isHorizontal) {
+              const wallZ = wall === 'top' ? room.y : room.y + room.height;
+              const hingeX = room.x + op.start;
+              const swingMult = (wall === 'top' ? -1 : 1) * (d.swingIn ? 1 : -1);
+              const openAngle = swingMult * Math.PI * 0.44;
+              result.push(
+                <group key={`door-${wall}-${op.start}`} position={[hingeX, 0, wallZ]}>
+                  <group rotation={[0, openAngle, 0]}>
+                    <mesh position={[doorW / 2, doorH / 2, 0]} castShadow>
+                      <boxGeometry args={[doorW, doorH, panelT]} />
+                      <meshStandardMaterial color="#b88c5a" roughness={0.65} />
+                    </mesh>
+                    <mesh position={[doorW * 0.82, doorH * 0.46, panelT / 2 + 0.022]}>
+                      <sphereGeometry args={[0.038, 8, 8]} />
+                      <meshStandardMaterial color="#aaa" metalness={0.75} roughness={0.2} />
+                    </mesh>
+                  </group>
+                </group>
+              );
+            } else {
+              const wallX = wall === 'left' ? room.x : room.x + room.width;
+              const hingeZ = room.y + op.start;
+              const swingMult = (wall === 'left' ? 1 : -1) * (d.swingIn ? 1 : -1);
+              const openAngle = swingMult * Math.PI * 0.44;
+              result.push(
+                <group key={`door-${wall}-${op.start}`} position={[wallX, 0, hingeZ]}>
+                  <group rotation={[0, openAngle, 0]}>
+                    <mesh position={[0, doorH / 2, doorW / 2]} castShadow>
+                      <boxGeometry args={[panelT, doorH, doorW]} />
+                      <meshStandardMaterial color="#b88c5a" roughness={0.65} />
+                    </mesh>
+                    <mesh position={[panelT / 2 + 0.022, doorH * 0.46, doorW * 0.82]}>
+                      <sphereGeometry args={[0.038, 8, 8]} />
+                      <meshStandardMaterial color="#aaa" metalness={0.75} roughness={0.2} />
+                    </mesh>
+                  </group>
+                </group>
+              );
+            }
           }
           cursor = op.end;
         }
@@ -380,7 +445,8 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
   return <>{walls}</>;
 }
 
-function FurnitureShape({ item }: { item: FurnitureItem }) {
+function FurnitureShape({ item, selectedId, onSelect }: { item: FurnitureItem; selectedId: string | null; onSelect: (id: string | null) => void }) {
+  const isSelected = selectedId === item.id;
   const rotation = (item.rotation * Math.PI) / 180;
   const cx = item.x + item.width / 2;
   const cz = item.y + item.depth / 2;
@@ -755,8 +821,20 @@ function FurnitureShape({ item }: { item: FurnitureItem }) {
   }
 
   return (
-    <group position={[cx, 0, cz]} rotation={[0, rotation, 0]}>
+    <group
+      position={[cx, 0, cz]}
+      rotation={[0, rotation, 0]}
+      onClick={(e) => { if (!document.pointerLockElement) { e.stopPropagation(); onSelect(item.id); } }}
+      onPointerOver={(e) => { if (!document.pointerLockElement) { e.stopPropagation(); document.body.style.cursor = 'pointer'; } }}
+      onPointerOut={() => { document.body.style.cursor = 'auto'; }}
+    >
       {shapes}
+      {isSelected && (
+        <mesh position={[0, 0.7, 0]}>
+          <boxGeometry args={[item.width + 0.1, 1.6, item.depth + 0.1]} />
+          <meshBasicMaterial color="#f59e0b" wireframe />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -779,9 +857,10 @@ function Ceiling({ plan }: { plan: FloorPlan }) {
 }
 
 function HouseScene({ showLabels, showCeiling, lighting }: { showLabels: boolean; showCeiling: boolean; lighting: LightingPreset }) {
-  const { state } = useDesigner();
+  const { state, dispatch } = useDesigner();
   const { plan } = state;
   const preset = LIGHTING_PRESETS[lighting];
+  const select = useCallback((id: string | null) => dispatch({ type: 'SELECT', id }), [dispatch]);
 
   return (
     <>
@@ -812,8 +891,13 @@ function HouseScene({ showLabels, showCeiling, lighting }: { showLabels: boolean
         />
       ))}
 
-      {/* Ground */}
-      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[5, -0.005, 5]}>
+      {/* Ground — click to deselect */}
+      <mesh
+        receiveShadow
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[5, -0.005, 5]}
+        onClick={() => { if (!document.pointerLockElement) select(null); }}
+      >
         <planeGeometry args={[80, 80]} />
         <meshStandardMaterial color={preset.ground} roughness={0.98} />
       </mesh>
@@ -821,17 +905,24 @@ function HouseScene({ showLabels, showCeiling, lighting }: { showLabels: boolean
       {/* Rooms */}
       {plan.rooms.map(room => (
         <group key={room.id}>
-          <RoomFloor room={room} showLabels={showLabels} />
+          <RoomFloor room={room} showLabels={showLabels} selectedId={state.selectedId} onSelect={select} />
           <RoomWalls room={room} doors={plan.doors} windows={plan.windows} wallHeight={plan.wallHeight} allRooms={plan.rooms} />
         </group>
       ))}
 
       {/* Furniture */}
       {plan.furniture.map(item => (
-        <FurnitureShape key={item.id} item={item} />
+        <FurnitureShape key={item.id} item={item} selectedId={state.selectedId} onSelect={select} />
       ))}
 
       {showCeiling && <Ceiling plan={plan} />}
+
+      {/* Empty-state prompt */}
+      {plan.rooms.length === 0 && (
+        <Text position={[5, 1.2, 5]} rotation={[-Math.PI / 4, 0, 0]} fontSize={0.45} color="#475569" anchorX="center">
+          {'Pridėkite kambarius 2D plane\narba pasirinkite šabloną'}
+        </Text>
+      )}
     </>
   );
 }
@@ -845,10 +936,9 @@ const LIGHTING_PRESETS: Record<LightingPreset, { sunPos: [number, number, number
   night:  { sunPos: [0, -50, 0],    ambient: 0.08, sunIntensity: 0,  skyMie: 0.01,  skyRayleigh: 0.5, ground: '#2a2f28', label: '🌙 Naktis' },
 };
 
-function WalkControls({ enabled }: { enabled: boolean }) {
+function WalkControls({ enabled, startX, startZ }: { enabled: boolean; startX: number; startZ: number }) {
   const { camera, gl } = useThree();
   const keysRef = useRef<Record<string, boolean>>({});
-  const velocityRef = useRef(new THREE.Vector3());
   const pitchRef = useRef(0);
   const yawRef = useRef(0);
   const lockedRef = useRef(false);
@@ -874,8 +964,8 @@ function WalkControls({ enabled }: { enabled: boolean }) {
     document.addEventListener('pointerlockchange', onLockChange);
     canvas.addEventListener('click', onClick);
 
-    camera.position.set(5, 1.7, 5);
-    camera.lookAt(8, 1.7, 5);
+    camera.position.set(startX, 1.7, startZ + 2);
+    camera.lookAt(startX + 2, 1.7, startZ);
 
     return () => {
       window.removeEventListener('keydown', onKeyDown);
@@ -885,7 +975,7 @@ function WalkControls({ enabled }: { enabled: boolean }) {
       canvas.removeEventListener('click', onClick);
       if (document.exitPointerLock) document.exitPointerLock();
     };
-  }, [enabled, camera, gl]);
+  }, [enabled, camera, gl, startX, startZ]);
 
   useFrame((_, delta) => {
     if (!enabled) return;
@@ -983,7 +1073,7 @@ export default function Viewer3D() {
             enableDamping
           />
         )}
-        {cameraMode === 'walk' && <WalkControls enabled={true} />}
+        {cameraMode === 'walk' && <WalkControls enabled={true} startX={center.x} startZ={center.z} />}
       </Canvas>
 
       {/* Camera mode controls */}

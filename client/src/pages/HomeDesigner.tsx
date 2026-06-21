@@ -8,7 +8,7 @@ import { ExportButton } from '@/components/designer/ExportPanel';
 import CostEstimator from '@/components/designer/CostEstimator';
 import MobileBottomSheet from '@/components/designer/MobileBottomSheet';
 import SaveLoadPanel from '@/components/designer/SaveLoadPanel';
-import { cn } from '@/lib/utils';
+import { cn, nanoid } from '@/lib/utils';
 import { Link } from 'wouter';
 
 const Viewer3D = lazy(() => import('@/components/designer/Viewer3D'));
@@ -30,7 +30,6 @@ export default function HomeDesigner() {
           if (!e.ctrlKey && !e.metaKey) dispatch({ type: 'SET_TOOL', tool: 'select' });
           break;
         case 'r': {
-          // R rotates selected furniture, otherwise switches to room tool
           const selFurn = state.plan.furniture.find(f => f.id === state.selectedId);
           if (selFurn) {
             dispatch({ type: 'UPDATE_FURNITURE', item: { ...selFurn, rotation: (selFurn.rotation + 90) % 360 } });
@@ -39,7 +38,51 @@ export default function HomeDesigner() {
           }
           break;
         }
-        case 'd': dispatch({ type: 'SET_TOOL', tool: 'door' }); break;
+        case 'e': {
+          const selFurnE = state.plan.furniture.find(f => f.id === state.selectedId);
+          if (selFurnE) {
+            dispatch({ type: 'UPDATE_FURNITURE', item: { ...selFurnE, rotation: (selFurnE.rotation + 45) % 360 } });
+          }
+          break;
+        }
+        case 'arrowleft':
+        case 'arrowright':
+        case 'arrowup':
+        case 'arrowdown': {
+          const { selectedId, plan, gridSize } = state;
+          if (!selectedId) break;
+          e.preventDefault();
+          const step = e.shiftKey ? gridSize * 5 : gridSize;
+          const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+          const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+          const nudgeRoom = plan.rooms.find(r => r.id === selectedId);
+          if (nudgeRoom) { dispatch({ type: 'UPDATE_ROOM', room: { ...nudgeRoom, x: nudgeRoom.x + dx, y: nudgeRoom.y + dy } }); break; }
+          const nudgeFurn = plan.furniture.find(f => f.id === selectedId);
+          if (nudgeFurn) { dispatch({ type: 'UPDATE_FURNITURE', item: { ...nudgeFurn, x: nudgeFurn.x + dx, y: nudgeFurn.y + dy } }); break; }
+          break;
+        }
+        case 'd':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            const { selectedId: selId, plan: p } = state;
+            const selRoom = p.rooms.find(r => r.id === selId);
+            if (selRoom) {
+              const dup = { ...selRoom, id: `r${nanoid()}`, x: selRoom.x + 0.5, y: selRoom.y + 0.5 };
+              dispatch({ type: 'ADD_ROOM', room: dup });
+              dispatch({ type: 'SELECT', id: dup.id });
+              break;
+            }
+            const selFurnD = p.furniture.find(f => f.id === selId);
+            if (selFurnD) {
+              const dup = { ...selFurnD, id: `f${nanoid()}`, x: selFurnD.x + 0.3, y: selFurnD.y + 0.3 };
+              dispatch({ type: 'ADD_FURNITURE', item: dup });
+              dispatch({ type: 'SELECT', id: dup.id });
+              break;
+            }
+          } else {
+            dispatch({ type: 'SET_TOOL', tool: 'door' });
+          }
+          break;
         case 'w': dispatch({ type: 'SET_TOOL', tool: 'window' }); break;
         case 'f': dispatch({ type: 'SET_TOOL', tool: 'furniture' }); break;
         case 'delete':
@@ -268,11 +311,15 @@ export default function HomeDesigner() {
               <div className="space-y-2 text-sm">
                 {[
                   ['S', 'Pasirinkimo įrankis'],
-                  ['R', 'Kambarys (arba sukti baldą)'],
+                  ['R', 'Kambarys / Sukti baldą 90°'],
+                  ['E', 'Sukti pasirinktą baldą 45°'],
                   ['D', 'Durys'],
                   ['W', 'Langas'],
                   ['F', 'Baldai'],
-                  ['G', 'Tilpti į ekraną'],
+                  ['G / Home', 'Tilpti į ekraną'],
+                  ['↑↓←→', 'Judinti pasirinktą'],
+                  ['Shift+↑↓←→', 'Judinti ×5'],
+                  ['Ctrl+D', 'Dublikuoti pasirinktą'],
                   ['Del / Backspace', 'Ištrinti pasirinktą'],
                   ['Ctrl+Z', 'Atšaukti'],
                   ['Ctrl+Shift+Z', 'Grąžinti'],
