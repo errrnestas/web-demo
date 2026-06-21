@@ -5,6 +5,7 @@ import LeftPanel from '@/components/designer/LeftPanel';
 import RightPanel from '@/components/designer/RightPanel';
 import FloorPlanCanvas from '@/components/designer/FloorPlanCanvas';
 import { ExportButton } from '@/components/designer/ExportPanel';
+import CostEstimator from '@/components/designer/CostEstimator';
 import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
 
@@ -88,6 +89,7 @@ export default function HomeDesigner() {
   }, []);
 
   const totalArea = state.plan.rooms.reduce((s, r) => s + r.width * r.height, 0);
+  const [rightTab, setRightTab] = useState<'props' | 'cost'>('props');
 
   return (
     <DesignerContext.Provider value={{ state, dispatch }}>
@@ -176,7 +178,30 @@ export default function HomeDesigner() {
             )}
           </main>
 
-          <RightPanel />
+          <div className="w-[220px] bg-slate-900 border-l border-slate-700 flex flex-col overflow-hidden shrink-0">
+            {/* Tab bar */}
+            <div className="flex border-b border-slate-700">
+              <button
+                onClick={() => setRightTab('props')}
+                className={cn('flex-1 py-2 text-xs font-medium transition-all',
+                  rightTab === 'props' ? 'text-blue-400 border-b-2 border-blue-500 bg-slate-800' : 'text-slate-500 hover:text-slate-300'
+                )}
+              >
+                Savybės
+              </button>
+              <button
+                onClick={() => setRightTab('cost')}
+                className={cn('flex-1 py-2 text-xs font-medium transition-all',
+                  rightTab === 'cost' ? 'text-blue-400 border-b-2 border-blue-500 bg-slate-800' : 'text-slate-500 hover:text-slate-300'
+                )}
+              >
+                💰 Sąmata
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              {rightTab === 'props' ? <RightPanel embedded /> : <CostEstimator />}
+            </div>
+          </div>
         </div>
 
         {/* Status bar */}

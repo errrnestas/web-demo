@@ -210,7 +210,7 @@ function FurnitureEditor({ item }: { item: FurnitureItem }) {
   );
 }
 
-export default function RightPanel() {
+export default function RightPanel({ embedded = false }: { embedded?: boolean }) {
   const { state, dispatch } = useDesigner();
   const { selectedId, plan } = state;
 
@@ -228,7 +228,7 @@ export default function RightPanel() {
   };
 
   return (
-    <div className="w-[220px] bg-slate-900 border-l border-slate-700 flex flex-col overflow-hidden shrink-0">
+    <div className={embedded ? "flex flex-col overflow-hidden h-full" : "w-[220px] bg-slate-900 border-l border-slate-700 flex flex-col overflow-hidden shrink-0"}>
       {/* Selected element */}
       <div className="flex-1 overflow-y-auto p-3">
         {selectedRoom && (
