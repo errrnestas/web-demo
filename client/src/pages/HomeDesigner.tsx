@@ -85,6 +85,7 @@ export default function HomeDesigner() {
           break;
         case 'w': dispatch({ type: 'SET_TOOL', tool: 'window' }); break;
         case 'f': dispatch({ type: 'SET_TOOL', tool: 'furniture' }); break;
+        case 'm': dispatch({ type: 'SET_TOOL', tool: 'measure' }); break;
         case 'delete':
         case 'backspace': {
           const { selectedId, plan } = state;
@@ -316,6 +317,7 @@ export default function HomeDesigner() {
                   ['D', 'Durys'],
                   ['W', 'Langas'],
                   ['F', 'Baldai'],
+                  ['M', 'Matuoti atstumą'],
                   ['G / Home', 'Tilpti į ekraną'],
                   ['↑↓←→', 'Judinti pasirinktą'],
                   ['Shift+↑↓←→', 'Judinti ×5'],

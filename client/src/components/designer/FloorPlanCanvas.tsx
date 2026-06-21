@@ -138,6 +138,7 @@ export default function FloorPlanCanvas() {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const guideLinesRef = useRef<{ vertX: number | null; horizY: number | null }>({ vertX: null, horizY: null });
   const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
+  const [measureStart, setMeasureStart] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     function resize() {
@@ -774,7 +775,16 @@ export default function FloorPlanCanvas() {
       ctx.setLineDash([]);
     }
 
-  }, [state, panOffset, drawing, worldToCanvas]);
+    // Measure tool — draw start point marker
+    if (measureStart) {
+      const { x: mx, y: my } = worldToCanvas(measureStart.x, measureStart.y);
+      ctx.fillStyle = '#f59e0b';
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+
+  }, [state, panOffset, drawing, worldToCanvas, measureStart]);
 
   useEffect(() => {
     drawCanvas();
@@ -969,8 +979,17 @@ export default function FloorPlanCanvas() {
         world.x >= r.x && world.x <= r.x + r.width && world.y >= r.y && world.y <= r.y + r.height
       );
       if (room) { dispatch({ type: 'DELETE_ROOM', id: room.id }); return; }
+
+    } else if (state.tool === 'measure') {
+      const sx = snapTo(world.x, state.gridSize, state.snapToGrid);
+      const sy = snapTo(world.y, state.gridSize, state.snapToGrid);
+      if (!measureStart) {
+        setMeasureStart({ x: sx, y: sy });
+      } else {
+        setMeasureStart(null);
+      }
     }
-  }, [state, dispatch, canvasToWorld, panOffset]);
+  }, [state, dispatch, canvasToWorld, panOffset, measureStart]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -1141,7 +1160,54 @@ export default function FloorPlanCanvas() {
         tt.style.display = 'none';
       }
     }
-  }, [isPanning, panStart, resizing, dragging, drawing, state, dispatch, canvasToWorld, worldToCanvas, drawCanvas]);
+
+    // Measure tool live preview
+    if (state.tool === 'measure' && measureStart) {
+      const ex = snapTo(world.x, state.gridSize, state.snapToGrid);
+      const ey = snapTo(world.y, state.gridSize, state.snapToGrid);
+      drawCanvas();
+      const ctx2 = canvas.getContext('2d');
+      if (ctx2) {
+        const { x: ax, y: ay } = worldToCanvas(measureStart.x, measureStart.y);
+        const { x: bx, y: by } = worldToCanvas(ex, ey);
+        const dist = Math.hypot(ex - measureStart.x, ey - measureStart.y);
+        ctx2.strokeStyle = '#f59e0b';
+        ctx2.lineWidth = 2;
+        ctx2.setLineDash([6, 4]);
+        ctx2.beginPath(); ctx2.moveTo(ax, ay); ctx2.lineTo(bx, by); ctx2.stroke();
+        ctx2.setLineDash([]);
+        ctx2.fillStyle = '#f59e0b';
+        ctx2.beginPath(); ctx2.arc(bx, by, 5, 0, Math.PI * 2); ctx2.fill();
+        // Tick marks at endpoints
+        ctx2.strokeStyle = '#f59e0b';
+        ctx2.lineWidth = 2;
+        const ang = Math.atan2(by - ay, bx - ax) + Math.PI / 2;
+        const tk = 6;
+        ctx2.beginPath();
+        ctx2.moveTo(ax - Math.cos(ang) * tk, ay - Math.sin(ang) * tk);
+        ctx2.lineTo(ax + Math.cos(ang) * tk, ay + Math.sin(ang) * tk);
+        ctx2.stroke();
+        ctx2.beginPath();
+        ctx2.moveTo(bx - Math.cos(ang) * tk, by - Math.sin(ang) * tk);
+        ctx2.lineTo(bx + Math.cos(ang) * tk, by + Math.sin(ang) * tk);
+        ctx2.stroke();
+        // Distance label
+        const label = `${dist.toFixed(2)} m`;
+        ctx2.font = 'bold 13px Inter, sans-serif';
+        const tw = ctx2.measureText(label).width;
+        const lx = (ax + bx) / 2;
+        const ly = (ay + by) / 2 - 14;
+        ctx2.fillStyle = 'rgba(15,23,42,0.88)';
+        ctx2.beginPath();
+        ctx2.roundRect(lx - tw / 2 - 7, ly - 10, tw + 14, 22, 5);
+        ctx2.fill();
+        ctx2.fillStyle = '#f59e0b';
+        ctx2.textAlign = 'center';
+        ctx2.textBaseline = 'middle';
+        ctx2.fillText(label, lx, ly);
+      }
+    }
+  }, [isPanning, panStart, resizing, dragging, drawing, state, dispatch, canvasToWorld, worldToCanvas, drawCanvas, measureStart]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanning) { setIsPanning(false); return; }
@@ -1204,6 +1270,11 @@ export default function FloorPlanCanvas() {
     });
     setZoom(newZoom);
   }, [state.plan.rooms, canvasSize]);
+
+  // Clear measure start when switching away from measure tool
+  useEffect(() => {
+    if (state.tool !== 'measure') setMeasureStart(null);
+  }, [state.tool]);
 
   // Fit-to-view via custom event from keyboard shortcut
   useEffect(() => {
@@ -1335,6 +1406,7 @@ export default function FloorPlanCanvas() {
       case 'window': return 'cell';
       case 'furniture': return state.pendingFurnitureType ? 'copy' : 'default';
       case 'delete': return 'not-allowed';
+      case 'measure': return 'crosshair';
       default: return 'default';
     }
   };
@@ -1429,6 +1501,7 @@ export default function FloorPlanCanvas() {
         {state.tool === 'select' && 'Spustelėkite pasirinkti · Vilkite judinti · Scroll priartinti'}
         {state.tool === 'delete' && 'Spustelėkite elementą, kad ištrintumėte'}
         {state.tool === 'furniture' && (state.pendingFurnitureType ? 'Spustelėkite, kad padėtumėte baldą' : 'Pasirinkite baldą kairėje')}
+        {state.tool === 'measure' && (measureStart ? 'Spustelėkite antrą tašką · Dar kartą – atstatyti' : 'Spustelėkite pirmą tašką, nuo kurio matuoti')}
       </div>
     </div>
   );

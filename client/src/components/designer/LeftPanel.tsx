@@ -12,6 +12,7 @@ const TOOL_BUTTONS: { tool: Tool; icon: string; label: string; shortcut: string 
   { tool: 'window', icon: '⬜', label: 'Langas', shortcut: 'W' },
   { tool: 'furniture', icon: '🪑', label: 'Baldai', shortcut: 'F' },
   { tool: 'delete', icon: '🗑', label: 'Ištrinti', shortcut: 'Del' },
+  { tool: 'measure', icon: '📏', label: 'Matuoti', shortcut: 'M' },
 ];
 
 const FURNITURE_CATEGORIES = ['Miegamasis', 'Svetainė', 'Valgomasis', 'Virtuvė', 'Kabinetas', 'Vonios kambarys', 'Dekoracijos', 'Kita'];

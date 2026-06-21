@@ -11,6 +11,7 @@ const TOOLS: { tool: Tool; icon: string; label: string }[] = [
   { tool: 'window', icon: '⬜', label: 'Langas' },
   { tool: 'furniture', icon: '🪑', label: 'Baldai' },
   { tool: 'delete', icon: '🗑', label: 'Ištrinti' },
+  { tool: 'measure', icon: '📏', label: 'Matuoti' },
 ];
 
 const FURNITURE_CATEGORIES = ['Miegamasis', 'Svetainė', 'Valgomasis', 'Virtuvė', 'Kabinetas', 'Vonios kambarys', 'Dekoracijos', 'Kita'];

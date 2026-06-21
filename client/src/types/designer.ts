@@ -2,7 +2,7 @@ export type RoomType = 'bedroom' | 'bathroom' | 'kitchen' | 'living' | 'dining' 
 export type WallSide = 'top' | 'right' | 'bottom' | 'left';
 export type FloorMaterial = 'wood' | 'tile' | 'carpet' | 'concrete' | 'marble' | 'vinyl';
 export type WallMaterial = 'white' | 'cream' | 'gray' | 'blue' | 'green' | 'brick' | 'wood-panel';
-export type Tool = 'select' | 'room' | 'door' | 'window' | 'furniture' | 'delete';
+export type Tool = 'select' | 'room' | 'door' | 'window' | 'furniture' | 'delete' | 'measure';
 
 export interface Room {
   id: string;
