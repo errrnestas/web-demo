@@ -2,7 +2,9 @@ import type { FloorPlan } from '@/types/designer';
 
 function uid(prefix: string, i: number) { return `${prefix}${i}`; }
 
-export const PLAN_TEMPLATES: { name: string; description: string; icon: string; plan: FloorPlan }[] = [
+type PlanTemplate = Omit<FloorPlan, 'id' | 'createdAt' | 'updatedAt'>;
+
+export const PLAN_TEMPLATES: { name: string; description: string; icon: string; plan: PlanTemplate }[] = [
   {
     name: 'Studija',
     description: '35 m² · 1 kambarys',

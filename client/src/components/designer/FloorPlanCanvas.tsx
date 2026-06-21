@@ -538,6 +538,32 @@ export default function FloorPlanCanvas() {
     }
 
     if (state.tool === 'select') {
+      // Check resize handles on selected room first
+      if (state.selectedId) {
+        const selRoom = state.plan.rooms.find(r => r.id === state.selectedId);
+        if (selRoom) {
+          const { x: rx, y: ry } = worldToCanvas(selRoom.x, selRoom.y);
+          const rw = selRoom.width * scaleRef.current;
+          const rh = selRoom.height * scaleRef.current;
+          const handles: { name: string; cx: number; cy: number }[] = [
+            { name: 'tl', cx: rx,          cy: ry },
+            { name: 'tm', cx: rx + rw / 2, cy: ry },
+            { name: 'tr', cx: rx + rw,     cy: ry },
+            { name: 'ml', cx: rx,          cy: ry + rh / 2 },
+            { name: 'mr', cx: rx + rw,     cy: ry + rh / 2 },
+            { name: 'bl', cx: rx,          cy: ry + rh },
+            { name: 'bm', cx: rx + rw / 2, cy: ry + rh },
+            { name: 'br', cx: rx + rw,     cy: ry + rh },
+          ];
+          for (const h of handles) {
+            if (Math.abs(pos.x - h.cx) < 8 && Math.abs(pos.y - h.cy) < 8) {
+              setResizing({ id: selRoom.id, handle: h.name, origRoom: { ...selRoom } });
+              return;
+            }
+          }
+        }
+      }
+
       // Check furniture first (on top)
       const furniture = [...state.plan.furniture].reverse().find(f => {
         const rad = (f.rotation * Math.PI) / 180;
@@ -676,6 +702,32 @@ export default function FloorPlanCanvas() {
     const pos = getPointerPos(canvas, e);
     const world = canvasToWorld(pos.x, pos.y);
 
+    if (resizing) {
+      const room = state.plan.rooms.find(r => r.id === resizing.id);
+      if (room) {
+        const orig = resizing.origRoom;
+        const wx = snapTo(world.x, state.gridSize, state.snapToGrid);
+        const wy = snapTo(world.y, state.gridSize, state.snapToGrid);
+        let { x, y, width, height } = orig;
+        const minSize = 0.5;
+        const r2x = orig.x + orig.width;
+        const r2y = orig.y + orig.height;
+
+        switch (resizing.handle) {
+          case 'tl': x = Math.min(wx, r2x - minSize); y = Math.min(wy, r2y - minSize); width = r2x - x; height = r2y - y; break;
+          case 'tm': y = Math.min(wy, r2y - minSize); height = r2y - y; break;
+          case 'tr': y = Math.min(wy, r2y - minSize); height = r2y - y; width = Math.max(minSize, wx - orig.x); break;
+          case 'ml': x = Math.min(wx, r2x - minSize); width = r2x - x; break;
+          case 'mr': width = Math.max(minSize, wx - orig.x); break;
+          case 'bl': x = Math.min(wx, r2x - minSize); width = r2x - x; height = Math.max(minSize, wy - orig.y); break;
+          case 'bm': height = Math.max(minSize, wy - orig.y); break;
+          case 'br': width = Math.max(minSize, wx - orig.x); height = Math.max(minSize, wy - orig.y); break;
+        }
+        dispatch({ type: 'UPDATE_ROOM', room: { ...room, x, y, width, height } });
+      }
+      return;
+    }
+
     if (dragging) {
       let sx = snapTo(world.x - dragging.offX, state.gridSize, state.snapToGrid);
       let sy = snapTo(world.y - dragging.offY, state.gridSize, state.snapToGrid);
@@ -742,10 +794,11 @@ export default function FloorPlanCanvas() {
         ctx.fillText(`${Math.abs(ex - sw.x).toFixed(1)}m × ${Math.abs(ey - sw.y).toFixed(1)}m`, cx + cw / 2, cy + ch / 2);
       }
     }
-  }, [isPanning, panStart, dragging, drawing, state, dispatch, canvasToWorld, worldToCanvas, drawCanvas]);
+  }, [isPanning, panStart, resizing, dragging, drawing, state, dispatch, canvasToWorld, worldToCanvas, drawCanvas]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanning) { setIsPanning(false); return; }
+    if (resizing) { setResizing(null); return; }
     setDragging(null);
 
     if (drawing && liveDrawRef.current && state.tool === 'room') {
@@ -804,6 +857,13 @@ export default function FloorPlanCanvas() {
     setZoom(newZoom);
   }, [state.plan.rooms, canvasSize]);
 
+  // Fit-to-view via custom event from keyboard shortcut
+  useEffect(() => {
+    const handler = () => fitToView();
+    window.addEventListener('designer:fitview', handler);
+    return () => window.removeEventListener('designer:fitview', handler);
+  }, [fitToView]);
+
   // Auto fit when plan changes significantly (room count changes)
   const prevRoomCount = useRef(state.plan.rooms.length);
   useEffect(() => {
@@ -845,21 +905,29 @@ export default function FloorPlanCanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    const singleTouchRef = { x: 0, y: 0, active: false };
+
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         e.preventDefault();
+        singleTouchRef.active = false;
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         const dist = Math.hypot(dx, dy);
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
         pinchRef.current = { dist, midX, midY };
+      } else if (e.touches.length === 1) {
+        singleTouchRef.active = true;
+        singleTouchRef.x = e.touches[0].clientX;
+        singleTouchRef.y = e.touches[0].clientY;
       }
     };
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2 && pinchRef.current) {
         e.preventDefault();
+        singleTouchRef.active = false;
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         const newDist = Math.hypot(dx, dy);
@@ -878,10 +946,20 @@ export default function FloorPlanCanvas() {
           return newZoom;
         });
         pinchRef.current = { dist: newDist, midX, midY };
+      } else if (e.touches.length === 1 && singleTouchRef.active) {
+        e.preventDefault();
+        const ddx = e.touches[0].clientX - singleTouchRef.x;
+        const ddy = e.touches[0].clientY - singleTouchRef.y;
+        setPanOffset(prev => ({ x: prev.x + ddx, y: prev.y + ddy }));
+        singleTouchRef.x = e.touches[0].clientX;
+        singleTouchRef.y = e.touches[0].clientY;
       }
     };
 
-    const onTouchEnd = () => { pinchRef.current = null; };
+    const onTouchEnd = () => {
+      pinchRef.current = null;
+      singleTouchRef.active = false;
+    };
 
     canvas.addEventListener('touchstart', onTouchStart, { passive: false });
     canvas.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -895,6 +973,13 @@ export default function FloorPlanCanvas() {
 
   const getCursor = () => {
     if (isPanning) return 'grabbing';
+    if (resizing) {
+      const h = resizing.handle;
+      if (h === 'tl' || h === 'br') return 'nwse-resize';
+      if (h === 'tr' || h === 'bl') return 'nesw-resize';
+      if (h === 'tm' || h === 'bm') return 'ns-resize';
+      return 'ew-resize';
+    }
     if (dragging) return 'move';
     switch (state.tool) {
       case 'room': return 'crosshair';
@@ -950,7 +1035,7 @@ export default function FloorPlanCanvas() {
         <button
           onClick={fitToView}
           className="w-8 h-8 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-lg flex items-center justify-center hover:bg-slate-700 backdrop-blur transition-all"
-          title="Rodyti visą projektą (F)"
+          title="Rodyti visą projektą (G)"
         >⊙</button>
       </div>
       {/* Hint */}

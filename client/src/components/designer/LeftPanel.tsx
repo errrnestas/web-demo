@@ -101,6 +101,24 @@ export default function LeftPanel() {
           >
             {state.snapToGrid ? '✓' : '○'} Magnetizavimas
           </button>
+          {state.snapToGrid && (
+            <div className="flex gap-1 mt-1">
+              {[0.1, 0.25, 0.5, 1.0].map(s => (
+                <button
+                  key={s}
+                  onClick={() => dispatch({ type: 'SET_GRID_SIZE', size: s })}
+                  className={cn('flex-1 py-1 rounded text-center transition-all border',
+                    state.gridSize === s
+                      ? 'bg-blue-700 border-blue-600 text-white'
+                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                  )}
+                  style={{ fontSize: '9px' }}
+                >
+                  {s}m
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

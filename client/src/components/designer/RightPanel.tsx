@@ -1,6 +1,6 @@
 import { useDesigner } from '@/lib/designer-store';
-import { cn } from '@/lib/utils';
-import type { Room, FurnitureItem } from '@/types/designer';
+import { cn, nanoid } from '@/lib/utils';
+import type { Room, FurnitureItem, Door, WindowElement } from '@/types/designer';
 import {
   ROOM_TYPE_LABELS,
   WALL_MATERIAL_COLORS,
@@ -84,6 +84,26 @@ function RoomEditor({ room }: { room: Room }) {
             className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
           />
         </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">X pozicija (m)</label>
+          <input
+            type="number"
+            step="0.1"
+            value={parseFloat(room.x.toFixed(2))}
+            onChange={e => update({ x: parseFloat(e.target.value) || 0 })}
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">Y pozicija (m)</label>
+          <input
+            type="number"
+            step="0.1"
+            value={parseFloat(room.y.toFixed(2))}
+            onChange={e => update({ y: parseFloat(e.target.value) || 0 })}
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          />
+        </div>
       </div>
 
       <div>
@@ -135,16 +155,28 @@ function RoomEditor({ room }: { room: Room }) {
         </div>
         <div className="flex justify-between">
           <span>Tūris:</span>
-          <span className="text-white font-medium">{(room.width * room.height * 2.6).toFixed(1)} m³</span>
+          <span className="text-white font-medium">{(room.width * room.height * state.plan.wallHeight).toFixed(1)} m³</span>
         </div>
       </div>
 
-      <button
-        onClick={() => dispatch({ type: 'DELETE_ROOM', id: room.id })}
-        className="w-full py-2 text-xs rounded-lg border border-red-800/50 text-red-400 hover:bg-red-900/20 transition-all"
-      >
-        🗑 Ištrinti kambarį
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            const dup = { ...room, id: `r${nanoid()}`, x: room.x + 0.5, y: room.y + 0.5 };
+            dispatch({ type: 'ADD_ROOM', room: dup });
+            dispatch({ type: 'SELECT', id: dup.id });
+          }}
+          className="flex-1 py-2 text-xs rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
+        >
+          ⧉ Kopijuoti
+        </button>
+        <button
+          onClick={() => dispatch({ type: 'DELETE_ROOM', id: room.id })}
+          className="flex-1 py-2 text-xs rounded-lg border border-red-800/50 text-red-400 hover:bg-red-900/20 transition-all"
+        >
+          🗑 Ištrinti
+        </button>
+      </div>
     </div>
   );
 }
@@ -200,11 +232,164 @@ function FurnitureEditor({ item }: { item: FurnitureItem }) {
         </div>
       </div>
 
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            const dup = { ...item, id: `f${nanoid()}`, x: item.x + 0.3, y: item.y + 0.3 };
+            dispatch({ type: 'ADD_FURNITURE', item: dup });
+            dispatch({ type: 'SELECT', id: dup.id });
+          }}
+          className="flex-1 py-2 text-xs rounded-lg border border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
+        >
+          ⧉ Kopijuoti
+        </button>
+        <button
+          onClick={() => dispatch({ type: 'DELETE_FURNITURE', id: item.id })}
+          className="flex-1 py-2 text-xs rounded-lg border border-red-800/50 text-red-400 hover:bg-red-900/20 transition-all"
+        >
+          🗑 Ištrinti
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const WALL_LABELS: Record<string, string> = {
+  top: 'Viršus', bottom: 'Apačia', left: 'Kairė', right: 'Dešinė'
+};
+
+function DoorEditor({ door }: { door: Door }) {
+  const { dispatch } = useDesigner();
+  const update = (patch: Partial<Door>) => dispatch({ type: 'UPDATE_DOOR', door: { ...door, ...patch } });
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500 uppercase tracking-wider">Durys</p>
+      <div>
+        <label className="text-xs text-slate-400 block mb-1">Plotis (m)</label>
+        <input
+          type="number"
+          step="0.05"
+          min="0.5"
+          max="2.5"
+          value={parseFloat(door.width.toFixed(2))}
+          onChange={e => update({ width: parseFloat(e.target.value) || 0.9 })}
+          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+        />
+      </div>
+      <div>
+        <label className="text-xs text-slate-400 block mb-1">Pozicija sienoje</label>
+        <input
+          type="range"
+          min="0.05"
+          max="0.95"
+          step="0.05"
+          value={door.position}
+          onChange={e => update({ position: parseFloat(e.target.value) })}
+          className="w-full accent-blue-500"
+        />
+        <span className="text-xs text-slate-500">{Math.round(door.position * 100)}%</span>
+      </div>
+      <div>
+        <label className="text-xs text-slate-400 block mb-2">Atidarymas</label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => update({ swingIn: true })}
+            className={cn('flex-1 py-1.5 text-xs rounded-lg border transition-all',
+              door.swingIn ? 'bg-blue-700 border-blue-600 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+            )}
+          >
+            Vidun
+          </button>
+          <button
+            onClick={() => update({ swingIn: false })}
+            className={cn('flex-1 py-1.5 text-xs rounded-lg border transition-all',
+              !door.swingIn ? 'bg-blue-700 border-blue-600 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+            )}
+          >
+            Laukan
+          </button>
+        </div>
+      </div>
+      <div className="bg-slate-800/60 rounded-lg p-2.5 text-xs text-slate-500">
+        Siena: <span className="text-slate-300">{WALL_LABELS[door.wall]}</span>
+      </div>
       <button
-        onClick={() => dispatch({ type: 'DELETE_FURNITURE', id: item.id })}
+        onClick={() => dispatch({ type: 'DELETE_DOOR', id: door.id })}
         className="w-full py-2 text-xs rounded-lg border border-red-800/50 text-red-400 hover:bg-red-900/20 transition-all"
       >
-        🗑 Ištrinti baldą
+        🗑 Ištrinti duris
+      </button>
+    </div>
+  );
+}
+
+function WindowEditor({ win }: { win: WindowElement }) {
+  const { dispatch } = useDesigner();
+  const update = (patch: Partial<WindowElement>) => dispatch({ type: 'UPDATE_WINDOW', win: { ...win, ...patch } });
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500 uppercase tracking-wider">Langas</p>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">Plotis (m)</label>
+          <input
+            type="number"
+            step="0.1"
+            min="0.4"
+            max="4"
+            value={parseFloat(win.width.toFixed(2))}
+            onChange={e => update({ width: parseFloat(e.target.value) || 1.2 })}
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">Aukštis (m)</label>
+          <input
+            type="number"
+            step="0.1"
+            min="0.3"
+            max="2.5"
+            value={parseFloat(win.height.toFixed(2))}
+            onChange={e => update({ height: parseFloat(e.target.value) || 1.2 })}
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          />
+        </div>
+      </div>
+      <div>
+        <label className="text-xs text-slate-400 block mb-1">Palangės aukštis (m)</label>
+        <input
+          type="number"
+          step="0.05"
+          min="0"
+          max="2"
+          value={parseFloat(win.sillHeight.toFixed(2))}
+          onChange={e => update({ sillHeight: parseFloat(e.target.value) || 0.9 })}
+          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+        />
+      </div>
+      <div>
+        <label className="text-xs text-slate-400 block mb-1">Pozicija sienoje</label>
+        <input
+          type="range"
+          min="0.05"
+          max="0.95"
+          step="0.05"
+          value={win.position}
+          onChange={e => update({ position: parseFloat(e.target.value) })}
+          className="w-full accent-blue-500"
+        />
+        <span className="text-xs text-slate-500">{Math.round(win.position * 100)}%</span>
+      </div>
+      <div className="bg-slate-800/60 rounded-lg p-2.5 text-xs text-slate-500">
+        Siena: <span className="text-slate-300">{WALL_LABELS[win.wall]}</span>
+      </div>
+      <button
+        onClick={() => dispatch({ type: 'DELETE_WINDOW', id: win.id })}
+        className="w-full py-2 text-xs rounded-lg border border-red-800/50 text-red-400 hover:bg-red-900/20 transition-all"
+      >
+        🗑 Ištrinti langą
       </button>
     </div>
   );
@@ -244,54 +429,10 @@ export default function RightPanel({ embedded = false }: { embedded?: boolean })
           </>
         )}
         {selectedDoor && (
-          <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Durys</p>
-            <div className="space-y-3">
-              <div className="bg-slate-800/60 rounded-lg p-3 text-xs text-slate-400">
-                <div className="flex justify-between mb-1">
-                  <span>Plotis:</span>
-                  <span className="text-white">{selectedDoor.width}m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Siena:</span>
-                  <span className="text-white capitalize">{selectedDoor.wall}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => dispatch({ type: 'DELETE_DOOR', id: selectedDoor.id })}
-                className="w-full py-2 text-xs rounded-lg border border-red-800/50 text-red-400 hover:bg-red-900/20 transition-all"
-              >
-                🗑 Ištrinti duris
-              </button>
-            </div>
-          </div>
+          <DoorEditor door={selectedDoor} />
         )}
         {selectedWindow && (
-          <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Langas</p>
-            <div className="space-y-3">
-              <div className="bg-slate-800/60 rounded-lg p-3 text-xs text-slate-400">
-                <div className="flex justify-between mb-1">
-                  <span>Plotis:</span>
-                  <span className="text-white">{selectedWindow.width}m</span>
-                </div>
-                <div className="flex justify-between mb-1">
-                  <span>Aukštis:</span>
-                  <span className="text-white">{selectedWindow.height}m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Palangė:</span>
-                  <span className="text-white">{selectedWindow.sillHeight}m</span>
-                </div>
-              </div>
-              <button
-                onClick={() => dispatch({ type: 'DELETE_WINDOW', id: selectedWindow.id })}
-                className="w-full py-2 text-xs rounded-lg border border-red-800/50 text-red-400 hover:bg-red-900/20 transition-all"
-              >
-                🗑 Ištrinti langą
-              </button>
-            </div>
-          </div>
+          <WindowEditor win={selectedWindow} />
         )}
         {!selectedId && (
           <div>

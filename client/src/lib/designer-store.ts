@@ -124,6 +124,7 @@ type Action =
   | { type: 'SET_PENDING_FURNITURE'; furnitureType: string | null }
   | { type: 'TOGGLE_GRID' }
   | { type: 'TOGGLE_SNAP' }
+  | { type: 'SET_GRID_SIZE'; size: number }
   | { type: 'SET_CAMERA_MODE'; mode: 'orbit' | 'firstperson' };
 
 function savePlanToHistory(state: DesignerState, newPlan: FloorPlan): Pick<DesignerState, 'history' | 'historyIndex'> {
@@ -200,6 +201,8 @@ function reducer(state: DesignerState, action: Action): DesignerState {
       return { ...state, showGrid: !state.showGrid };
     case 'TOGGLE_SNAP':
       return { ...state, snapToGrid: !state.snapToGrid };
+    case 'SET_GRID_SIZE':
+      return { ...state, gridSize: action.size };
     case 'SET_CAMERA_MODE':
       return { ...state, cameraMode: action.mode };
     default:

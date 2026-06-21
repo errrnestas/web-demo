@@ -630,31 +630,34 @@ function Ceiling({ plan }: { plan: FloorPlan }) {
   );
 }
 
-function HouseScene({ showLabels, showCeiling }: { showLabels: boolean; showCeiling: boolean }) {
+function HouseScene({ showLabels, showCeiling, lighting }: { showLabels: boolean; showCeiling: boolean; lighting: LightingPreset }) {
   const { state } = useDesigner();
   const { plan } = state;
+  const preset = LIGHTING_PRESETS[lighting];
 
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight
-        castShadow
-        position={[15, 20, 10]}
-        intensity={1.0}
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-far={100}
-        shadow-camera-left={-30}
-        shadow-camera-right={30}
-        shadow-camera-top={30}
-        shadow-camera-bottom={-30}
-      />
+      <ambientLight intensity={preset.ambient} />
+      {preset.sunIntensity > 0 && (
+        <directionalLight
+          castShadow
+          position={preset.sunPos}
+          intensity={preset.sunIntensity}
+          shadow-mapSize={[2048, 2048]}
+          shadow-camera-far={100}
+          shadow-camera-left={-30}
+          shadow-camera-right={30}
+          shadow-camera-top={30}
+          shadow-camera-bottom={-30}
+        />
+      )}
 
-      {/* Per-room ceiling lights */}
+      {/* Per-room ceiling lights — brighter at night */}
       {plan.rooms.map(room => (
         <pointLight
           key={`light-${room.id}`}
           position={[room.x + room.width / 2, plan.wallHeight - 0.2, room.y + room.height / 2]}
-          intensity={0.6}
+          intensity={lighting === 'night' ? 1.4 : 0.6}
           color="#fff8e7"
           distance={Math.max(room.width, room.height) * 2.5}
           decay={2}
@@ -664,7 +667,7 @@ function HouseScene({ showLabels, showCeiling }: { showLabels: boolean; showCeil
       {/* Ground */}
       <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[5, -0.005, 5]}>
         <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color="#8fa080" roughness={0.98} />
+        <meshStandardMaterial color={preset.ground} roughness={0.98} />
       </mesh>
 
       {/* Rooms */}
@@ -686,6 +689,13 @@ function HouseScene({ showLabels, showCeiling }: { showLabels: boolean; showCeil
 }
 
 type CameraMode = 'orbit' | 'top' | 'walk';
+type LightingPreset = 'day' | 'sunset' | 'night';
+
+const LIGHTING_PRESETS: Record<LightingPreset, { sunPos: [number, number, number]; ambient: number; sunIntensity: number; skyMie: number; skyRayleigh: number; ground: string; label: string }> = {
+  day:    { sunPos: [100, 80, 100], ambient: 0.5, sunIntensity: 1.0, skyMie: 0.005, skyRayleigh: 2,   ground: '#8fa080', label: '☀️ Diena' },
+  sunset: { sunPos: [30, 6, -80],   ambient: 0.3, sunIntensity: 1.4, skyMie: 0.02,  skyRayleigh: 4,   ground: '#6b7060', label: '🌅 Saulėlydis' },
+  night:  { sunPos: [0, -50, 0],    ambient: 0.08, sunIntensity: 0,  skyMie: 0.01,  skyRayleigh: 0.5, ground: '#2a2f28', label: '🌙 Naktis' },
+};
 
 function WalkControls({ enabled }: { enabled: boolean }) {
   const { camera, gl } = useThree();
@@ -756,6 +766,7 @@ export default function Viewer3D() {
   const [cameraMode, setCameraMode] = useState<CameraMode>('orbit');
   const [showLabels, setShowLabels] = useState(true);
   const [showCeiling, setShowCeiling] = useState(false);
+  const [lighting, setLighting] = useState<LightingPreset>('day');
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   const center = useMemo(() => {
@@ -798,9 +809,9 @@ export default function Viewer3D() {
         {cameraMode === 'walk' && (
           <PerspectiveCamera makeDefault position={[center.x, 1.7, center.z + 3]} fov={75} near={0.05} far={200} />
         )}
-        <Sky sunPosition={[100, 80, 100]} />
+        <Sky sunPosition={LIGHTING_PRESETS[lighting].sunPos} mieCoefficient={LIGHTING_PRESETS[lighting].skyMie} rayleigh={LIGHTING_PRESETS[lighting].skyRayleigh} />
         <Suspense fallback={null}>
-          <HouseScene showLabels={showLabels} showCeiling={showCeiling} />
+          <HouseScene showLabels={showLabels} showCeiling={showCeiling} lighting={lighting} />
         </Suspense>
         {cameraMode === 'orbit' && (
           <OrbitControls
@@ -863,6 +874,17 @@ export default function Viewer3D() {
         >
           🏠 Lubos
         </button>
+        <div className="flex flex-col gap-1 bg-slate-800/70 p-1 rounded-lg border border-slate-700/50 backdrop-blur">
+          {(Object.keys(LIGHTING_PRESETS) as LightingPreset[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setLighting(p)}
+              className={`text-xs px-2 py-1 rounded transition-all ${lighting === p ? 'bg-blue-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+            >
+              {LIGHTING_PRESETS[p].label}
+            </button>
+          ))}
+        </div>
         <div className="text-xs text-slate-500 bg-slate-800/70 px-2.5 py-1.5 rounded-lg backdrop-blur border border-slate-700/50 text-center">
           {state.plan.rooms.length}k · {state.plan.furniture.length}b
         </div>

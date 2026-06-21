@@ -29,7 +29,16 @@ export default function HomeDesigner() {
         case 's':
           if (!e.ctrlKey && !e.metaKey) dispatch({ type: 'SET_TOOL', tool: 'select' });
           break;
-        case 'r': dispatch({ type: 'SET_TOOL', tool: 'room' }); break;
+        case 'r': {
+          // R rotates selected furniture, otherwise switches to room tool
+          const selFurn = state.plan.furniture.find(f => f.id === state.selectedId);
+          if (selFurn) {
+            dispatch({ type: 'UPDATE_FURNITURE', item: { ...selFurn, rotation: (selFurn.rotation + 90) % 360 } });
+          } else {
+            dispatch({ type: 'SET_TOOL', tool: 'room' });
+          }
+          break;
+        }
         case 'd': dispatch({ type: 'SET_TOOL', tool: 'door' }); break;
         case 'w': dispatch({ type: 'SET_TOOL', tool: 'window' }); break;
         case 'f': dispatch({ type: 'SET_TOOL', tool: 'furniture' }); break;
@@ -49,6 +58,10 @@ export default function HomeDesigner() {
             if (e.shiftKey) dispatch({ type: 'REDO' });
             else dispatch({ type: 'UNDO' });
           }
+          break;
+        case 'home':
+        case 'g':
+          window.dispatchEvent(new CustomEvent('designer:fitview'));
           break;
         case 'escape':
           dispatch({ type: 'SELECT', id: null });
@@ -234,7 +247,7 @@ export default function HomeDesigner() {
           </span>
           <div className="flex-1" />
           <span className="text-xs text-slate-700 hidden lg:block">
-            S · R · D · W · F · Del · Ctrl+Z/Y
+            S · R · D · W · F · Del · G=Fit · Ctrl+Z/Y
           </span>
         </footer>
       </div>
