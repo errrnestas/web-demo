@@ -258,7 +258,7 @@ export default function FloorPlanCanvas() {
       }
     }
 
-    // Draw furniture
+    // Draw furniture with architectural symbols
     for (const item of plan.furniture) {
       const { x, y } = worldToCanvas(item.x, item.y);
       const fw = item.width * scaleRef.current;
@@ -269,17 +269,152 @@ export default function FloorPlanCanvas() {
       ctx.translate(x + fw / 2, y + fd / 2);
       ctx.rotate((item.rotation * Math.PI) / 180);
 
-      ctx.fillStyle = item.color + '99';
-      ctx.strokeStyle = isSelected ? '#f59e0b' : '#475569';
-      ctx.lineWidth = isSelected ? 2 : 1;
+      const stroke = isSelected ? '#f59e0b' : '#374151';
+      const fill = item.color + 'cc';
+      const lw = isSelected ? 2 : 1;
+
+      // Base shape
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = lw;
       ctx.fillRect(-fw / 2, -fd / 2, fw, fd);
       ctx.strokeRect(-fw / 2, -fd / 2, fw, fd);
 
-      ctx.font = `${Math.max(8, Math.min(10, fw / 7))}px Inter, sans-serif`;
-      ctx.fillStyle = '#1e293b';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(item.name, 0, 0);
+      // Type-specific symbols
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+
+      switch (item.type) {
+        case 'double-bed':
+        case 'single-bed': {
+          // Headboard line
+          ctx.fillStyle = 'rgba(0,0,0,0.35)';
+          ctx.fillRect(-fw / 2, -fd / 2, fw, Math.min(fd * 0.25, 12));
+          // Pillow(s)
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.strokeStyle = stroke; ctx.lineWidth = 0.5;
+          const pw = item.type === 'double-bed' ? fw * 0.38 : fw * 0.65;
+          const ph = fd * 0.28;
+          const py = -fd / 2 + fd * 0.32;
+          if (item.type === 'double-bed') {
+            ctx.fillRect(-fw * 0.46, py, pw, ph); ctx.strokeRect(-fw * 0.46, py, pw, ph);
+            ctx.fillRect(fw * 0.08, py, pw, ph); ctx.strokeRect(fw * 0.08, py, pw, ph);
+          } else {
+            ctx.fillRect(-pw / 2, py, pw, ph); ctx.strokeRect(-pw / 2, py, pw, ph);
+          }
+          break;
+        }
+        case 'sofa': {
+          // Back
+          ctx.fillStyle = 'rgba(0,0,0,0.2)';
+          ctx.fillRect(-fw / 2, -fd / 2, fw, fd * 0.22);
+          // Armrests
+          ctx.fillRect(-fw / 2, -fd / 2, fw * 0.12, fd);
+          ctx.fillRect(fw / 2 - fw * 0.12, -fd / 2, fw * 0.12, fd);
+          break;
+        }
+        case 'armchair': {
+          ctx.fillStyle = 'rgba(0,0,0,0.2)';
+          ctx.fillRect(-fw / 2, -fd / 2, fw, fd * 0.25);
+          ctx.fillRect(-fw / 2, -fd / 2, fw * 0.18, fd);
+          ctx.fillRect(fw / 2 - fw * 0.18, -fd / 2, fw * 0.18, fd);
+          break;
+        }
+        case 'dining-table':
+        case 'desk': {
+          // Cross lines
+          ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-fw / 2, -fd / 2); ctx.lineTo(fw / 2, fd / 2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(fw / 2, -fd / 2); ctx.lineTo(-fw / 2, fd / 2); ctx.stroke();
+          break;
+        }
+        case 'toilet': {
+          // Oval bowl
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.beginPath();
+          ctx.ellipse(0, fd * 0.1, fw * 0.38, fd * 0.32, 0, 0, Math.PI * 2);
+          ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 0.5; ctx.stroke();
+          // Tank
+          ctx.fillStyle = 'rgba(0,0,0,0.2)';
+          ctx.fillRect(-fw * 0.42, -fd / 2, fw * 0.84, fd * 0.22);
+          break;
+        }
+        case 'bathtub': {
+          // Inner oval
+          ctx.fillStyle = 'rgba(173,216,230,0.5)';
+          ctx.beginPath();
+          ctx.ellipse(0, fd * 0.1, fw * 0.38, fd * 0.34, 0, 0, Math.PI * 2);
+          ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 0.5; ctx.stroke();
+          // Tap area
+          ctx.fillStyle = 'rgba(0,0,0,0.15)';
+          ctx.fillRect(-fw * 0.25, -fd / 2, fw * 0.5, fd * 0.12);
+          break;
+        }
+        case 'shower': {
+          // Diagonal hatch
+          ctx.strokeStyle = 'rgba(135,206,235,0.5)'; ctx.lineWidth = 1.5;
+          const step = Math.min(fw, fd) * 0.25;
+          for (let i = -fw; i < fw + fd; i += step) {
+            ctx.beginPath(); ctx.moveTo(-fw / 2, -fd / 2 + i); ctx.lineTo(-fw / 2 + i, -fd / 2); ctx.stroke();
+          }
+          break;
+        }
+        case 'sink': {
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.beginPath();
+          ctx.ellipse(0, 0, fw * 0.38, fd * 0.38, 0, 0, Math.PI * 2);
+          ctx.fill(); ctx.strokeStyle = stroke; ctx.lineWidth = 0.5; ctx.stroke();
+          // Drain
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.beginPath(); ctx.arc(0, 0, fw * 0.07, 0, Math.PI * 2); ctx.fill();
+          break;
+        }
+        case 'kitchen-counter': {
+          // Lines indicating counter sections
+          ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.5;
+          for (let i = 1; i < 3; i++) {
+            const lx = -fw / 2 + (fw / 3) * i;
+            ctx.beginPath(); ctx.moveTo(lx, -fd / 2); ctx.lineTo(lx, fd / 2); ctx.stroke();
+          }
+          break;
+        }
+        case 'plant': {
+          // Circle with leaf pattern
+          ctx.fillStyle = item.color + 'ee';
+          ctx.beginPath(); ctx.arc(0, 0, Math.min(fw, fd) * 0.45, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = 'rgba(0,80,0,0.4)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(0, -fd * 0.42); ctx.lineTo(0, fd * 0.42); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-fw * 0.42, 0); ctx.lineTo(fw * 0.42, 0); ctx.stroke();
+          break;
+        }
+        case 'wardrobe': {
+          // Hinge lines on doors
+          ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.5;
+          ctx.beginPath(); ctx.moveTo(0, -fd / 2); ctx.lineTo(0, fd / 2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-fw / 2, -fd / 2); ctx.arc(-fw / 2, fd / 2, fd, -Math.PI / 2, 0); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(fw / 2, -fd / 2); ctx.arc(fw / 2, fd / 2, fd, Math.PI + Math.PI / 2, Math.PI); ctx.stroke();
+          break;
+        }
+        case 'bookshelf': {
+          // Shelf lines
+          ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.5;
+          for (let i = 1; i < 4; i++) {
+            const ly = -fd / 2 + (fd / 4) * i;
+            ctx.beginPath(); ctx.moveTo(-fw / 2, ly); ctx.lineTo(fw / 2, ly); ctx.stroke();
+          }
+          break;
+        }
+      }
+
+      // Name label (small, only if large enough)
+      if (fw > 40 && fd > 20) {
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `${Math.max(7, Math.min(9, fw / 10))}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(item.name, 0, fd / 2 - 2);
+      }
 
       ctx.restore();
     }
