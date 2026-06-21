@@ -64,7 +64,7 @@ export default function LeftPanel() {
                 key={t.name}
                 onClick={() => {
                   if (confirm(`Įkelti šabloną "${t.name}"? Dabartinis projektas bus prarastas.`)) {
-                    dispatch({ type: 'SET_PLAN', plan: t.plan });
+                    dispatch({ type: 'SET_PLAN', plan: { ...t.plan, id: `tpl-${Date.now()}`, createdAt: Date.now(), updatedAt: Date.now() } });
                     setShowTemplates(false);
                   }
                 }}

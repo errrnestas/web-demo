@@ -456,11 +456,39 @@ export default function FloorPlanCanvas() {
     const world = canvasToWorld(pos.x, pos.y);
 
     if (dragging) {
-      const sx = snapTo(world.x - dragging.offX, state.gridSize, state.snapToGrid);
-      const sy = snapTo(world.y - dragging.offY, state.gridSize, state.snapToGrid);
+      let sx = snapTo(world.x - dragging.offX, state.gridSize, state.snapToGrid);
+      let sy = snapTo(world.y - dragging.offY, state.gridSize, state.snapToGrid);
+
       if (dragging.type === 'room') {
         const room = state.plan.rooms.find(r => r.id === dragging.id);
-        if (room) dispatch({ type: 'UPDATE_ROOM', room: { ...room, x: sx, y: sy } });
+        if (room) {
+          // Room-to-room edge snapping
+          const SNAP_DIST = 0.35;
+          const others = state.plan.rooms.filter(r => r.id !== dragging.id);
+          let bestX = SNAP_DIST, bestY = SNAP_DIST;
+
+          for (const o of others) {
+            const edges = [
+              { snap: o.x - room.width, dist: Math.abs(sx + room.width - o.x) },
+              { snap: o.x + o.width, dist: Math.abs(sx - (o.x + o.width)) },
+              { snap: o.x, dist: Math.abs(sx - o.x) },
+              { snap: o.x + o.width - room.width, dist: Math.abs(sx + room.width - (o.x + o.width)) },
+            ];
+            for (const e of edges) {
+              if (e.dist < bestX) { bestX = e.dist; sx = e.snap; }
+            }
+            const yEdges = [
+              { snap: o.y - room.height, dist: Math.abs(sy + room.height - o.y) },
+              { snap: o.y + o.height, dist: Math.abs(sy - (o.y + o.height)) },
+              { snap: o.y, dist: Math.abs(sy - o.y) },
+              { snap: o.y + o.height - room.height, dist: Math.abs(sy + room.height - (o.y + o.height)) },
+            ];
+            for (const e of yEdges) {
+              if (e.dist < bestY) { bestY = e.dist; sy = e.snap; }
+            }
+          }
+          dispatch({ type: 'UPDATE_ROOM', room: { ...room, x: sx, y: sy } });
+        }
       } else {
         const item = state.plan.furniture.find(f => f.id === dragging.id);
         if (item) dispatch({ type: 'UPDATE_FURNITURE', item: { ...item, x: sx, y: sy } });
