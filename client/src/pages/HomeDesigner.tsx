@@ -6,6 +6,7 @@ import RightPanel from '@/components/designer/RightPanel';
 import FloorPlanCanvas from '@/components/designer/FloorPlanCanvas';
 import { ExportButton } from '@/components/designer/ExportPanel';
 import CostEstimator from '@/components/designer/CostEstimator';
+import MobileBottomSheet from '@/components/designer/MobileBottomSheet';
 import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
 
@@ -158,7 +159,9 @@ export default function HomeDesigner() {
 
         {/* Main content */}
         <div className="flex flex-1 overflow-hidden min-h-0">
-          {state.view === '2d' && <LeftPanel />}
+          <div className="hidden lg:flex">
+            {state.view === '2d' && <LeftPanel />}
+          </div>
 
           <main className="flex-1 overflow-hidden relative min-w-0">
             {state.view === '2d' ? (
@@ -178,7 +181,7 @@ export default function HomeDesigner() {
             )}
           </main>
 
-          <div className="w-[220px] bg-slate-900 border-l border-slate-700 flex flex-col overflow-hidden shrink-0">
+          <div className="hidden lg:flex w-[220px] bg-slate-900 border-l border-slate-700 flex-col overflow-hidden shrink-0">
             {/* Tab bar */}
             <div className="flex border-b border-slate-700">
               <button
@@ -204,8 +207,10 @@ export default function HomeDesigner() {
           </div>
         </div>
 
+        <MobileBottomSheet />
+
         {/* Status bar */}
-        <footer className="h-7 bg-slate-900 border-t border-slate-700 flex items-center px-4 gap-6 shrink-0">
+        <footer className="h-7 bg-slate-900 border-t border-slate-700 hidden lg:flex items-center px-4 gap-6 shrink-0">
           <span className="text-xs text-slate-500">
             Įrankis: <span className="text-blue-400 font-medium">{state.tool}</span>
           </span>
