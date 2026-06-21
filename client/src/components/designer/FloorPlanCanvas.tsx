@@ -136,6 +136,7 @@ export default function FloorPlanCanvas() {
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<{ id: string; handle: string; origRoom: Room } | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const guideLinesRef = useRef<{ vertX: number | null; horizY: number | null }>({ vertX: null, horizY: null });
   const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
 
   useEffect(() => {
@@ -754,6 +755,25 @@ export default function FloorPlanCanvas() {
       ctx.restore();
     }
 
+    // Alignment guides (shown during room drag when an edge snaps to another room)
+    const { vertX, horizY } = guideLinesRef.current;
+    if (vertX !== null) {
+      const { x: gx } = worldToCanvas(vertX, 0);
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (horizY !== null) {
+      const { y: gy } = worldToCanvas(0, horizY);
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvas.width, gy); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
   }, [state, panOffset, drawing, worldToCanvas]);
 
   useEffect(() => {
@@ -1029,27 +1049,29 @@ export default function FloorPlanCanvas() {
           const SNAP_DIST = 0.35;
           const others = state.plan.rooms.filter(r => r.id !== dragging.id);
           let bestX = SNAP_DIST, bestY = SNAP_DIST;
+          let snapVertX: number | null = null, snapHorizY: number | null = null;
 
           for (const o of others) {
             const edges = [
-              { snap: o.x - room.width, dist: Math.abs(sx + room.width - o.x) },
-              { snap: o.x + o.width, dist: Math.abs(sx - (o.x + o.width)) },
-              { snap: o.x, dist: Math.abs(sx - o.x) },
-              { snap: o.x + o.width - room.width, dist: Math.abs(sx + room.width - (o.x + o.width)) },
+              { snap: o.x - room.width, dist: Math.abs(sx + room.width - o.x), world: o.x },
+              { snap: o.x + o.width, dist: Math.abs(sx - (o.x + o.width)), world: o.x + o.width },
+              { snap: o.x, dist: Math.abs(sx - o.x), world: o.x },
+              { snap: o.x + o.width - room.width, dist: Math.abs(sx + room.width - (o.x + o.width)), world: o.x + o.width },
             ];
             for (const e of edges) {
-              if (e.dist < bestX) { bestX = e.dist; sx = e.snap; }
+              if (e.dist < bestX) { bestX = e.dist; sx = e.snap; snapVertX = e.world; }
             }
             const yEdges = [
-              { snap: o.y - room.height, dist: Math.abs(sy + room.height - o.y) },
-              { snap: o.y + o.height, dist: Math.abs(sy - (o.y + o.height)) },
-              { snap: o.y, dist: Math.abs(sy - o.y) },
-              { snap: o.y + o.height - room.height, dist: Math.abs(sy + room.height - (o.y + o.height)) },
+              { snap: o.y - room.height, dist: Math.abs(sy + room.height - o.y), world: o.y },
+              { snap: o.y + o.height, dist: Math.abs(sy - (o.y + o.height)), world: o.y + o.height },
+              { snap: o.y, dist: Math.abs(sy - o.y), world: o.y },
+              { snap: o.y + o.height - room.height, dist: Math.abs(sy + room.height - (o.y + o.height)), world: o.y + o.height },
             ];
             for (const e of yEdges) {
-              if (e.dist < bestY) { bestY = e.dist; sy = e.snap; }
+              if (e.dist < bestY) { bestY = e.dist; sy = e.snap; snapHorizY = e.world; }
             }
           }
+          guideLinesRef.current = { vertX: snapVertX, horizY: snapHorizY };
           dispatch({ type: 'UPDATE_ROOM', room: { ...room, x: sx, y: sy } });
         }
       } else {
@@ -1125,6 +1147,7 @@ export default function FloorPlanCanvas() {
     if (isPanning) { setIsPanning(false); return; }
     if (resizing) { setResizing(null); return; }
     setDragging(null);
+    guideLinesRef.current = { vertX: null, horizY: null };
 
     if (drawing && liveDrawRef.current && state.tool === 'room') {
       const canvas = canvasRef.current;
@@ -1326,7 +1349,7 @@ export default function FloorPlanCanvas() {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={() => { setDragging(null); setIsPanning(false); if (tooltipRef.current) tooltipRef.current.style.display = 'none'; }}
+        onMouseLeave={() => { setDragging(null); setIsPanning(false); guideLinesRef.current = { vertX: null, horizY: null }; if (tooltipRef.current) tooltipRef.current.style.display = 'none'; }}
       />
       {/* Hover tooltip */}
       <div
