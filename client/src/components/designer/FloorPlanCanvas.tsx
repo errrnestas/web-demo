@@ -4,7 +4,7 @@ import type { Room, Door, WindowElement, FurnitureItem } from '@/types/designer'
 import { ROOM_COLORS, FURNITURE_CATALOG } from '@/types/designer';
 import { nanoid } from '@/lib/utils';
 
-const SCALE = 60; // pixels per meter
+const BASE_SCALE = 60; // pixels per meter at zoom=1
 
 function snapTo(value: number, grid: number, snap: boolean): number {
   if (!snap) return value;
@@ -27,6 +27,7 @@ export default function FloorPlanCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 });
   const [panOffset, setPanOffset] = useState({ x: 40, y: 40 });
+  const [zoom, setZoom] = useState(1.0);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [drawing, setDrawing] = useState<{ startX: number; startY: number } | null>(null);
@@ -45,14 +46,18 @@ export default function FloorPlanCanvas() {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
+  const scale = BASE_SCALE * zoom;
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+
   const worldToCanvas = useCallback((wx: number, wy: number) => ({
-    x: wx * SCALE + panOffset.x,
-    y: wy * SCALE + panOffset.y,
+    x: wx * scaleRef.current + panOffset.x,
+    y: wy * scaleRef.current + panOffset.y,
   }), [panOffset]);
 
   const canvasToWorld = useCallback((cx: number, cy: number) => ({
-    x: (cx - panOffset.x) / SCALE,
-    y: (cy - panOffset.y) / SCALE,
+    x: (cx - panOffset.x) / scaleRef.current,
+    y: (cy - panOffset.y) / scaleRef.current,
   }), [panOffset]);
 
   const drawCanvas = useCallback(() => {
@@ -71,7 +76,7 @@ export default function FloorPlanCanvas() {
     if (state.showGrid) {
       ctx.strokeStyle = 'rgba(255,255,255,0.06)';
       ctx.lineWidth = 1;
-      const step = state.gridSize * SCALE;
+      const step = state.gridSize * scaleRef.current;
       const startX = panOffset.x % step;
       const startY = panOffset.y % step;
       for (let x = startX; x < canvas.width; x += step) {
@@ -81,7 +86,7 @@ export default function FloorPlanCanvas() {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
       // Major grid every 1m
-      const majorStep = SCALE;
+      const majorStep = scaleRef.current;
       const mStartX = panOffset.x % majorStep;
       const mStartY = panOffset.y % majorStep;
       ctx.strokeStyle = 'rgba(255,255,255,0.12)';
@@ -98,8 +103,8 @@ export default function FloorPlanCanvas() {
     // Draw rooms
     for (const room of plan.rooms) {
       const { x, y } = worldToCanvas(room.x, room.y);
-      const w = room.width * SCALE;
-      const h = room.height * SCALE;
+      const w = room.width * scaleRef.current;
+      const h = room.height * scaleRef.current;
       const isSelected = room.id === selectedId;
 
       // Floor fill
@@ -141,9 +146,9 @@ export default function FloorPlanCanvas() {
       const room = plan.rooms.find(r => r.id === door.roomId);
       if (!room) continue;
       const { x: rx, y: ry } = worldToCanvas(room.x, room.y);
-      const rw = room.width * SCALE;
-      const rh = room.height * SCALE;
-      const doorW = door.width * SCALE;
+      const rw = room.width * scaleRef.current;
+      const rh = room.height * scaleRef.current;
+      const doorW = door.width * scaleRef.current;
       const isSelected = door.id === selectedId;
 
       ctx.strokeStyle = isSelected ? '#f59e0b' : '#64748b';
@@ -200,9 +205,9 @@ export default function FloorPlanCanvas() {
       const room = plan.rooms.find(r => r.id === win.roomId);
       if (!room) continue;
       const { x: rx, y: ry } = worldToCanvas(room.x, room.y);
-      const rw = room.width * SCALE;
-      const rh = room.height * SCALE;
-      const winW = win.width * SCALE;
+      const rw = room.width * scaleRef.current;
+      const rh = room.height * scaleRef.current;
+      const winW = win.width * scaleRef.current;
       const isSelected = win.id === selectedId;
 
       ctx.fillStyle = isSelected ? '#bae6fd' : '#7dd3fc';
@@ -226,8 +231,8 @@ export default function FloorPlanCanvas() {
     // Draw furniture
     for (const item of plan.furniture) {
       const { x, y } = worldToCanvas(item.x, item.y);
-      const fw = item.width * SCALE;
-      const fd = item.depth * SCALE;
+      const fw = item.width * scaleRef.current;
+      const fd = item.depth * scaleRef.current;
       const isSelected = item.id === selectedId;
 
       ctx.save();
@@ -266,7 +271,7 @@ export default function FloorPlanCanvas() {
     ctx.font = '11px Inter, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`1m = ${SCALE}px`, 20, canvas.height - 23);
+    ctx.fillText(`1m = ${scaleRef.current}px`, 20, canvas.height - 23);
 
   }, [state, panOffset, drawing, worldToCanvas]);
 
@@ -445,8 +450,8 @@ export default function FloorPlanCanvas() {
       const ex = snapTo(world.x, state.gridSize, state.snapToGrid);
       const ey = snapTo(world.y, state.gridSize, state.snapToGrid);
       const { x: cx, y: cy } = worldToCanvas(Math.min(sw.x, ex), Math.min(sw.y, ey));
-      const cw = Math.abs(ex - sw.x) * SCALE;
-      const ch = Math.abs(ey - sw.y) * SCALE;
+      const cw = Math.abs(ex - sw.x) * scaleRef.current;
+      const ch = Math.abs(ey - sw.y) * scaleRef.current;
 
       // Live draw preview
       drawCanvas();
@@ -510,18 +515,22 @@ export default function FloorPlanCanvas() {
 
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
-    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-    // Zoom toward mouse
-    setPanOffset(prev => ({
-      x: mouseX - (mouseX - prev.x) * factor,
-      y: mouseY - (mouseY - prev.y) * factor,
-    }));
-    // Note: for real zoom we'd need a separate zoom state, but this approximates
+
+    setZoom(prevZoom => {
+      const newZoom = Math.max(0.2, Math.min(5, prevZoom * factor));
+      const scaleFactor = newZoom / prevZoom;
+      setPanOffset(prev => ({
+        x: mouseX - (mouseX - prev.x) * scaleFactor,
+        y: mouseY - (mouseY - prev.y) * scaleFactor,
+      }));
+      return newZoom;
+    });
   }, []);
 
   useEffect(() => {
@@ -556,14 +565,33 @@ export default function FloorPlanCanvas() {
         onMouseUp={handleMouseUp}
         onMouseLeave={() => { setDragging(null); setIsPanning(false); }}
       />
+      {/* Zoom controls */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-1">
+        <button
+          onClick={() => setZoom(z => Math.min(5, z * 1.25))}
+          className="w-8 h-8 bg-slate-800/90 border border-slate-700 text-white rounded-lg flex items-center justify-center hover:bg-slate-700 text-sm font-bold backdrop-blur transition-all"
+        >+</button>
+        <div className="w-8 h-7 bg-slate-900/80 border border-slate-700 text-slate-400 rounded-lg flex items-center justify-center text-center backdrop-blur" style={{ fontSize: '9px' }}>
+          {Math.round(zoom * 100)}%
+        </div>
+        <button
+          onClick={() => setZoom(z => Math.max(0.2, z / 1.25))}
+          className="w-8 h-8 bg-slate-800/90 border border-slate-700 text-white rounded-lg flex items-center justify-center hover:bg-slate-700 text-sm font-bold backdrop-blur transition-all"
+        >−</button>
+        <button
+          onClick={() => { setZoom(1); setPanOffset({ x: 40, y: 40 }); }}
+          className="w-8 h-8 bg-slate-800/90 border border-slate-700 text-slate-400 rounded-lg flex items-center justify-center hover:bg-slate-700 backdrop-blur transition-all"
+          title="Atstatyti vaizdą"
+        >⊙</button>
+      </div>
       {/* Hint */}
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-xs text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-full pointer-events-none">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-full pointer-events-none">
         {state.tool === 'room' && 'Spustelėkite ir vilkite, kad sukurtumėte kambarį'}
-        {state.tool === 'door' && 'Spustelėkite ant sienos, kad pridėtumėte dureles'}
+        {state.tool === 'door' && 'Spustelėkite ant sienos, kad pridėtumėte duris'}
         {state.tool === 'window' && 'Spustelėkite ant sienos, kad pridėtumėte langą'}
-        {state.tool === 'select' && 'Spustelėkite elementą, kad jį pasirinktumėte. Vilkite, kad pajudintumėte'}
+        {state.tool === 'select' && 'Spustelėkite pasirinkti · Vilkite judinti · Scroll priartinti'}
         {state.tool === 'delete' && 'Spustelėkite elementą, kad ištrintumėte'}
-        {state.tool === 'furniture' && (state.pendingFurnitureType ? 'Spustelėkite, kad padėtumėte baldą' : 'Pasirinkite baldą dešinėje')}
+        {state.tool === 'furniture' && (state.pendingFurnitureType ? 'Spustelėkite, kad padėtumėte baldą' : 'Pasirinkite baldą kairėje')}
       </div>
     </div>
   );
