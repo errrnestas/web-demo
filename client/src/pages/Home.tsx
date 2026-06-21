@@ -4,6 +4,7 @@ import { Navigation } from "@/components/Navigation";
 import { Search, SlidersHorizontal, ArrowUpRight } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { useState } from "react";
+import { Link } from "wouter";
 
 export default function Home() {
   const { data: projects, isLoading } = useProjects();
@@ -26,6 +27,27 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         {/* Header Section */}
         <div className="mb-10">
+          {/* 3D Designer Banner */}
+          <Link href="/designer">
+            <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-blue-950 to-indigo-900 border border-blue-800 hover:border-blue-600 transition-all cursor-pointer group shadow-lg shadow-blue-950/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">🏠</span>
+                    <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">Nauja!</span>
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-1">3D Namų Dizaineris</h2>
+                  <p className="text-sm text-blue-300">Sukurkite savo namų planą, pridėkite baldus, peržiūrėkite 3D vaizdu. Įdiegiama į telefoną.</p>
+                </div>
+                <div className="shrink-0 ml-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-600 group-hover:bg-blue-500 transition-colors flex items-center justify-center">
+                    <ArrowUpRight className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div>
               <h1 className="text-4xl md:text-5xl font-extrabold text-foreground tracking-tight mb-4">

@@ -1,0 +1,36 @@
+{
+  "name": "NamųDizainas 3D",
+  "short_name": "NamųDizainas",
+  "description": "Profesionalus 3D namų vizualizavimo ir planavimo įrankis",
+  "start_url": "/designer",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e40af",
+  "orientation": "landscape-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["design", "productivity", "utilities"],
+  "lang": "lt",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Naujas projektas",
+      "url": "/designer",
+      "description": "Sukurti naują namų projektą"
+    }
+  ]
+}

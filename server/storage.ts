@@ -1,10 +1,4 @@
-import { db } from "./db";
 import {
-  projects,
-  galleryPhotos,
-  guides,
-  servicePlans,
-  inquiries,
   type InsertProject,
   type InsertGalleryPhoto,
   type InsertGuide,
@@ -16,82 +10,109 @@ import {
   type ServicePlan,
   type Inquiry
 } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  // Projects
   getProjects(): Promise<Project[]>;
   getProject(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
-  
-  // Gallery
   getGalleryByProject(projectId: number): Promise<GalleryPhoto[]>;
   createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto>;
-  
-  // Guides
   getGuides(): Promise<Guide[]>;
   getGuide(id: number): Promise<Guide | undefined>;
   createGuide(guide: InsertGuide): Promise<Guide>;
-  
-  // Service Plans
   getServicePlans(): Promise<ServicePlan[]>;
   createServicePlan(plan: InsertServicePlan): Promise<ServicePlan>;
-  
-  // Inquiries
   createInquiry(inquiry: InsertInquiry): Promise<Inquiry>;
 }
 
-export class DatabaseStorage implements IStorage {
-  async getProjects(): Promise<Project[]> {
-    return await db.select().from(projects).orderBy(desc(projects.createdAt));
+export class MemoryStorage implements IStorage {
+  private _projects: Project[] = [];
+  private _gallery: GalleryPhoto[] = [];
+  private _guides: Guide[] = [];
+  private _plans: ServicePlan[] = [];
+  private _inquiries: Inquiry[] = [];
+  private idCounter = 1;
+
+  private nextId() { return this.idCounter++; }
+
+  async getProjects() { return [...this._projects].reverse(); }
+  async getProject(id: number) { return this._projects.find(p => p.id === id); }
+
+  async createProject(data: InsertProject): Promise<Project> {
+    const p: Project = {
+      id: this.nextId(),
+      title: data.title,
+      description: data.description,
+      imageUrl: data.imageUrl,
+      location: data.location,
+      area: data.area ?? null,
+      price: data.price ?? null,
+      createdAt: new Date(),
+    };
+    this._projects.push(p);
+    return p;
   }
 
-  async getProject(id: number): Promise<Project | undefined> {
-    const [project] = await db.select().from(projects).where(eq(projects.id, id));
-    return project;
+  async getGalleryByProject(projectId: number) {
+    return this._gallery.filter(g => g.projectId === projectId);
   }
 
-  async createProject(project: InsertProject): Promise<Project> {
-    const [newProject] = await db.insert(projects).values(project).returning();
-    return newProject;
+  async createGalleryPhoto(data: InsertGalleryPhoto): Promise<GalleryPhoto> {
+    const g: GalleryPhoto = {
+      id: this.nextId(),
+      projectId: data.projectId!,
+      imageUrl: data.imageUrl,
+      caption: data.caption ?? null,
+      createdAt: new Date(),
+    };
+    this._gallery.push(g);
+    return g;
   }
 
-  async getGalleryByProject(projectId: number): Promise<GalleryPhoto[]> {
-    return await db.select().from(galleryPhotos).where(eq(galleryPhotos.projectId, projectId));
+  async getGuides() { return [...this._guides].reverse(); }
+  async getGuide(id: number) { return this._guides.find(g => g.id === id); }
+
+  async createGuide(data: InsertGuide): Promise<Guide> {
+    const g: Guide = {
+      id: this.nextId(),
+      title: data.title,
+      content: data.content,
+      category: data.category,
+      imageUrl: data.imageUrl ?? null,
+      createdAt: new Date(),
+    };
+    this._guides.push(g);
+    return g;
   }
 
-  async createGalleryPhoto(photo: InsertGalleryPhoto): Promise<GalleryPhoto> {
-    const [newPhoto] = await db.insert(galleryPhotos).values(photo).returning();
-    return newPhoto;
+  async getServicePlans() { return [...this._plans].reverse(); }
+
+  async createServicePlan(data: InsertServicePlan): Promise<ServicePlan> {
+    const p: ServicePlan = {
+      id: this.nextId(),
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      features: data.features ?? null,
+      createdAt: new Date(),
+    };
+    this._plans.push(p);
+    return p;
   }
 
-  async getGuides(): Promise<Guide[]> {
-    return await db.select().from(guides).orderBy(desc(guides.createdAt));
-  }
-
-  async getGuide(id: number): Promise<Guide | undefined> {
-    const [guide] = await db.select().from(guides).where(eq(guides.id, id));
-    return guide;
-  }
-
-  async createGuide(guide: InsertGuide): Promise<Guide> {
-    const [newGuide] = await db.insert(guides).values(guide).returning();
-    return newGuide;
-  }
-
-  async getServicePlans(): Promise<ServicePlan[]> {
-    return await db.select().from(servicePlans).orderBy(desc(servicePlans.createdAt));
-  }
-
-  async createServicePlan(plan: InsertServicePlan): Promise<ServicePlan> {
-    const [newPlan] = await db.insert(servicePlans).values(plan).returning();
-    return newPlan;
-  }
-
-  async createInquiry(inquiry: InsertInquiry): Promise<Inquiry> {
-    const [newInquiry] = await db.insert(inquiries).values(inquiry).returning();
-    return newInquiry;
+  async createInquiry(data: InsertInquiry): Promise<Inquiry> {
+    const i: Inquiry = {
+      id: this.nextId(),
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      message: data.message,
+      projectId: data.projectId ?? null,
+      createdAt: new Date(),
+    };
+    this._inquiries.push(i);
+    return i;
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemoryStorage();
