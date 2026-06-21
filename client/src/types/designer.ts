@@ -41,7 +41,9 @@ export type FurnitureType =
   | 'double-bed' | 'single-bed' | 'sofa' | 'armchair'
   | 'dining-table' | 'chair' | 'coffee-table' | 'desk'
   | 'wardrobe' | 'bookshelf' | 'kitchen-counter' | 'sink'
-  | 'bathtub' | 'toilet' | 'shower' | 'tv-stand' | 'plant';
+  | 'bathtub' | 'toilet' | 'shower' | 'tv-stand' | 'plant'
+  | 'stove' | 'refrigerator' | 'washing-machine' | 'office-chair'
+  | 'nightstand' | 'dresser' | 'rug' | 'fireplace';
 
 export interface FurnitureItem {
   id: string;
@@ -135,4 +137,12 @@ export const FURNITURE_CATALOG: Array<{
   { type: 'toilet', name: 'Unitazas', width: 0.4, depth: 0.65, color: '#f0f0f0', category: 'Vonios kambarys' },
   { type: 'shower', name: 'Dušas', width: 0.9, depth: 0.9, color: '#e8f4f8', category: 'Vonios kambarys' },
   { type: 'plant', name: 'Augalas', width: 0.4, depth: 0.4, color: '#4a7c4e', category: 'Dekoracijos' },
+  { type: 'rug', name: 'Kilimas', width: 2.0, depth: 1.4, color: '#8b6560', category: 'Dekoracijos' },
+  { type: 'fireplace', name: 'Židinys', width: 1.4, depth: 0.5, color: '#5a4a3a', category: 'Dekoracijos' },
+  { type: 'stove', name: 'Viryklė', width: 0.6, depth: 0.65, color: '#444444', category: 'Virtuvė' },
+  { type: 'refrigerator', name: 'Šaldytuvas', width: 0.7, depth: 0.75, color: '#c8c8c8', category: 'Virtuvė' },
+  { type: 'washing-machine', name: 'Skalbimo mašina', width: 0.6, depth: 0.6, color: '#d8d8d8', category: 'Vonios kambarys' },
+  { type: 'office-chair', name: 'Biuro kėdė', width: 0.65, depth: 0.65, color: '#2a2a2a', category: 'Kabinetas' },
+  { type: 'nightstand', name: 'Naktinė spintelė', width: 0.5, depth: 0.45, color: '#8b6914', category: 'Miegamasis' },
+  { type: 'dresser', name: 'Komoda', width: 1.2, depth: 0.5, color: '#8b6914', category: 'Miegamasis' },
 ];

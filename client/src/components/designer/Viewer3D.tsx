@@ -623,6 +623,105 @@ function FurnitureShape({ item }: { item: FurnitureItem }) {
       </mesh>);
       break;
     }
+    case 'stove': {
+      shapes.push(<mesh key="body" castShadow receiveShadow position={[0, 0.43, 0]}>
+        <boxGeometry args={[item.width, 0.86, item.depth]} />
+        <meshStandardMaterial color={item.color} roughness={0.3} metalness={0.4} />
+      </mesh>);
+      shapes.push(<mesh key="top" position={[0, 0.87, 0]}>
+        <boxGeometry args={[item.width, 0.03, item.depth]} />
+        <meshStandardMaterial color="#222" roughness={0.1} metalness={0.7} />
+      </mesh>);
+      // Burners
+      [[-0.15, -0.15], [0.15, -0.15], [-0.15, 0.15], [0.15, 0.15]].forEach(([bx, bz], i) => {
+        shapes.push(<mesh key={`b${i}`} position={[bx, 0.9, bz]}>
+          <cylinderGeometry args={[0.08, 0.08, 0.02, 12]} />
+          <meshStandardMaterial color="#111" metalness={0.8} roughness={0.2} />
+        </mesh>);
+      });
+      break;
+    }
+    case 'refrigerator': {
+      shapes.push(<mesh key="body" castShadow receiveShadow position={[0, 0.9, 0]}>
+        <boxGeometry args={[item.width, 1.8, item.depth]} />
+        <meshStandardMaterial color={item.color} roughness={0.2} metalness={0.2} />
+      </mesh>);
+      shapes.push(<mesh key="handle" position={[item.width * 0.45, 1.2, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.3, 8]} />
+        <meshStandardMaterial color={metal} metalness={0.9} roughness={0.1} />
+      </mesh>);
+      break;
+    }
+    case 'washing-machine': {
+      shapes.push(<mesh key="body" castShadow receiveShadow position={[0, 0.43, 0]}>
+        <boxGeometry args={[item.width, 0.86, item.depth]} />
+        <meshStandardMaterial color={item.color} roughness={0.3} />
+      </mesh>);
+      shapes.push(<mesh key="drum" position={[0, 0.5, item.depth / 2 - 0.04]}>
+        <cylinderGeometry args={[0.22, 0.22, 0.05, 20]} rotation={[Math.PI / 2, 0, 0]} />
+        <meshStandardMaterial color="#a8d8ea" transparent opacity={0.4} roughness={0.05} />
+      </mesh>);
+      break;
+    }
+    case 'office-chair': {
+      shapes.push(<mesh key="seat" castShadow receiveShadow position={[0, 0.5, 0]}>
+        <cylinderGeometry args={[0.28, 0.28, 0.08, 16]} />
+        <meshStandardMaterial color={item.color} roughness={0.8} />
+      </mesh>);
+      shapes.push(<mesh key="back" castShadow position={[0, 0.85, -0.24]}>
+        <boxGeometry args={[0.48, 0.6, 0.06]} />
+        <meshStandardMaterial color={item.color} roughness={0.8} />
+      </mesh>);
+      shapes.push(<mesh key="pole" position={[0, 0.25, 0]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.5, 8]} />
+        <meshStandardMaterial color={metal} metalness={0.7} />
+      </mesh>);
+      break;
+    }
+    case 'nightstand': {
+      shapes.push(<mesh key="body" castShadow receiveShadow position={[0, 0.35, 0]}>
+        <boxGeometry args={[item.width, 0.7, item.depth]} />
+        <meshStandardMaterial color={item.color} roughness={0.6} />
+      </mesh>);
+      break;
+    }
+    case 'dresser': {
+      shapes.push(<mesh key="body" castShadow receiveShadow position={[0, 0.5, 0]}>
+        <boxGeometry args={[item.width, 1.0, item.depth]} />
+        <meshStandardMaterial color={item.color} roughness={0.5} />
+      </mesh>);
+      for (let i = 0; i < 3; i++) {
+        shapes.push(<mesh key={`handle${i}`} position={[0, 0.2 + i * 0.3, item.depth / 2 + 0.01]}>
+          <boxGeometry args={[0.25, 0.03, 0.02]} />
+          <meshStandardMaterial color={metal} metalness={0.8} roughness={0.2} />
+        </mesh>);
+      }
+      break;
+    }
+    case 'rug': {
+      shapes.push(<mesh key="rug" receiveShadow position={[0, 0.01, 0]}>
+        <boxGeometry args={[item.width, 0.02, item.depth]} />
+        <meshStandardMaterial color={item.color} roughness={0.95} />
+      </mesh>);
+      break;
+    }
+    case 'fireplace': {
+      shapes.push(<mesh key="body" castShadow receiveShadow position={[0, 0.6, 0]}>
+        <boxGeometry args={[item.width, 1.2, item.depth]} />
+        <meshStandardMaterial color={item.color} roughness={0.8} />
+      </mesh>);
+      // Opening
+      shapes.push(<mesh key="opening" position={[0, 0.4, item.depth / 2 + 0.01]}>
+        <boxGeometry args={[item.width * 0.65, 0.6, 0.02]} />
+        <meshStandardMaterial color="#111" roughness={1} />
+      </mesh>);
+      // Fire glow
+      shapes.push(<mesh key="fire" position={[0, 0.25, item.depth / 2 - 0.02]}>
+        <boxGeometry args={[item.width * 0.5, 0.25, 0.02]} />
+        <meshStandardMaterial color="#ff6b00" emissive="#ff4400" emissiveIntensity={1.5} roughness={1} />
+      </mesh>);
+      break;
+    }
     default: {
       shapes.push(<mesh key="default" castShadow receiveShadow position={[0, 0.3, 0]}>
         <boxGeometry args={[item.width, 0.6, item.depth]} />

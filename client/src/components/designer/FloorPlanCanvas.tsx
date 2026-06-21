@@ -447,12 +447,54 @@ export default function FloorPlanCanvas() {
           break;
         }
         case 'bookshelf': {
-          // Shelf lines
           ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.5;
           for (let i = 1; i < 4; i++) {
             const ly = -fd / 2 + (fd / 4) * i;
             ctx.beginPath(); ctx.moveTo(-fw / 2, ly); ctx.lineTo(fw / 2, ly); ctx.stroke();
           }
+          break;
+        }
+        case 'stove': {
+          // Burners
+          [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]].forEach(([bx, by]) => {
+            ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(fw * bx, fd * by, Math.min(fw, fd) * 0.18, 0, Math.PI * 2); ctx.stroke();
+          });
+          break;
+        }
+        case 'refrigerator': {
+          ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.5;
+          ctx.beginPath(); ctx.moveTo(-fw / 2, 0); ctx.lineTo(fw / 2, 0); ctx.stroke();
+          break;
+        }
+        case 'rug': {
+          ctx.strokeStyle = item.color; ctx.lineWidth = 2;
+          ctx.strokeRect(-fw / 2 + 4, -fd / 2 + 4, fw - 8, fd - 8);
+          break;
+        }
+        case 'fireplace': {
+          ctx.fillStyle = '#222';
+          ctx.fillRect(-fw * 0.35, -fd / 2, fw * 0.7, fd * 0.7);
+          ctx.fillStyle = 'rgba(255,100,0,0.5)';
+          ctx.fillRect(-fw * 0.25, -fd / 2 + 2, fw * 0.5, fd * 0.5);
+          break;
+        }
+        case 'washing-machine': {
+          ctx.fillStyle = 'rgba(173,216,230,0.4)';
+          ctx.beginPath(); ctx.arc(0, 0, Math.min(fw, fd) * 0.38, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 0.5; ctx.stroke();
+          break;
+        }
+        case 'office-chair': {
+          ctx.strokeStyle = stroke; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(0, 0, Math.min(fw, fd) * 0.42, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, -fd / 2 + 2); ctx.lineTo(0, -fd * 0.08); ctx.stroke();
+          break;
+        }
+        case 'nightstand':
+        case 'dresser': {
+          ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 0.5;
+          ctx.beginPath(); ctx.moveTo(-fw / 2, 0); ctx.lineTo(fw / 2, 0); ctx.stroke();
           break;
         }
       }
