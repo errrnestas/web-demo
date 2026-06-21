@@ -484,6 +484,28 @@ export default function RightPanel({ embedded = false }: { embedded?: boolean })
               ))}
             </div>
 
+            {plan.rooms.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Kambarių tipai</p>
+                <div className="space-y-1">
+                  {Object.entries(
+                    plan.rooms.reduce<Record<string, { count: number; area: number }>>((acc, r) => {
+                      const label = ROOM_TYPE_LABELS[r.type] || r.type;
+                      if (!acc[label]) acc[label] = { count: 0, area: 0 };
+                      acc[label].count++;
+                      acc[label].area += r.width * r.height;
+                      return acc;
+                    }, {})
+                  ).map(([label, { count, area }]) => (
+                    <div key={label} className="flex items-center justify-between px-2.5 py-1.5 bg-slate-800/40 rounded-lg">
+                      <span className="text-xs text-slate-400">{label}{count > 1 ? ` ×${count}` : ''}</span>
+                      <span className="text-xs text-slate-300 font-medium">{area.toFixed(1)} m²</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-4 space-y-2">
               <p className="text-xs text-slate-500 uppercase tracking-wider">Sienų aukštis</p>
               <div className="flex items-center gap-2">

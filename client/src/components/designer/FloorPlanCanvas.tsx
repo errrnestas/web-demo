@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useDesigner } from '@/lib/designer-store';
-import type { Room, Door, WindowElement, FurnitureItem } from '@/types/designer';
+import type { Room, Door, WindowElement, FurnitureItem, FloorPlan } from '@/types/designer';
 import { ROOM_COLORS, FURNITURE_CATALOG } from '@/types/designer';
 import { nanoid } from '@/lib/utils';
 
@@ -21,6 +21,104 @@ function getPointerPos(canvas: HTMLCanvasElement, e: React.MouseEvent | React.To
   };
 }
 
+function escapeXml(s: string): string {
+  return s.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c] ?? c));
+}
+
+function exportPlanToSVG(plan: FloorPlan): void {
+  if (plan.rooms.length === 0) return;
+  const S = 80, M = 52, WW = 7, EPSILON = 0.06;
+  const minX = Math.min(...plan.rooms.map(r => r.x));
+  const maxX = Math.max(...plan.rooms.map(r => r.x + r.width));
+  const minY = Math.min(...plan.rooms.map(r => r.y));
+  const maxY = Math.max(...plan.rooms.map(r => r.y + r.height));
+  const planW = (maxX - minX) * S, planH = (maxY - minY) * S;
+  const svgW = planW + M * 2, svgH = planH + M * 2 + 44;
+  const tx = (x: number) => (x - minX) * S + M;
+  const ty = (y: number) => (y - minY) * S + M;
+  const skip = (room: Room, side: 'top'|'right'|'bottom'|'left'): boolean => {
+    for (const o of plan.rooms) {
+      if (o.id >= room.id) continue;
+      let sh = false;
+      if (side === 'top') sh = Math.abs(o.y + o.height - room.y) < EPSILON && o.x < room.x + room.width - EPSILON && o.x + o.width > room.x + EPSILON;
+      else if (side === 'bottom') sh = Math.abs(o.y - (room.y + room.height)) < EPSILON && o.x < room.x + room.width - EPSILON && o.x + o.width > room.x + EPSILON;
+      else if (side === 'left') sh = Math.abs(o.x + o.width - room.x) < EPSILON && o.y < room.y + room.height - EPSILON && o.y + o.height > room.y + EPSILON;
+      else sh = Math.abs(o.x - (room.x + room.width)) < EPSILON && o.y < room.y + room.height - EPSILON && o.y + o.height > room.y + EPSILON;
+      if (sh) return true;
+    }
+    return false;
+  };
+  const pts = (r: Room, s: string): [number,number,number,number] => {
+    const x=tx(r.x),y=ty(r.y),w=r.width*S,h=r.height*S;
+    const m: Record<string,[number,number,number,number]> = {top:[x,y,x+w,y],right:[x+w,y,x+w,y+h],bottom:[x,y+h,x+w,y+h],left:[x,y,x,y+h]};
+    return m[s];
+  };
+  const p: string[] = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`,
+    `<rect width="${svgW}" height="${svgH}" fill="white"/>`,
+    ...plan.rooms.map(r => `<rect x="${tx(r.x)}" y="${ty(r.y)}" width="${r.width*S}" height="${r.height*S}" fill="${(r.floorColor||ROOM_COLORS[r.type])}44" stroke="none"/>`),
+    ...plan.rooms.flatMap(r => (['top','right','bottom','left'] as const).filter(s => !skip(r,s)).map(s => { const [x1,y1,x2,y2]=pts(r,s); return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#1e293b" stroke-width="${WW}" stroke-linecap="square"/>`; })),
+    ...plan.doors.flatMap(d => {
+      const r = plan.rooms.find(ro => ro.id === d.roomId); if (!r) return [];
+      const rx=tx(r.x),ry=ty(r.y),rw=r.width*S,rh=r.height*S,dw=d.width*S;
+      switch(d.wall) {
+        case 'top': { const gx=rx+(rw-dw)*d.position; return [`<line x1="${gx}" y1="${ry}" x2="${gx+dw}" y2="${ry}" stroke="white" stroke-width="${WW+2}"/>`,`<path d="M ${gx} ${ry} L ${gx+dw} ${ry} A ${dw} ${dw} 0 0 0 ${gx} ${ry+dw}" fill="none" stroke="#64748b" stroke-width="1.2" stroke-dasharray="4,2"/>`]; }
+        case 'bottom': { const gx=rx+(rw-dw)*d.position,gy=ry+rh; return [`<line x1="${gx}" y1="${gy}" x2="${gx+dw}" y2="${gy}" stroke="white" stroke-width="${WW+2}"/>`,`<path d="M ${gx} ${gy} L ${gx+dw} ${gy} A ${dw} ${dw} 0 0 1 ${gx} ${gy-dw}" fill="none" stroke="#64748b" stroke-width="1.2" stroke-dasharray="4,2"/>`]; }
+        case 'left': { const gy=ry+(rh-dw)*d.position; return [`<line x1="${rx}" y1="${gy}" x2="${rx}" y2="${gy+dw}" stroke="white" stroke-width="${WW+2}"/>`,`<path d="M ${rx} ${gy} L ${rx} ${gy+dw} A ${dw} ${dw} 0 0 1 ${rx+dw} ${gy}" fill="none" stroke="#64748b" stroke-width="1.2" stroke-dasharray="4,2"/>`]; }
+        case 'right': { const gx=rx+rw,gy=ry+(rh-dw)*d.position; return [`<line x1="${gx}" y1="${gy}" x2="${gx}" y2="${gy+dw}" stroke="white" stroke-width="${WW+2}"/>`,`<path d="M ${gx} ${gy} L ${gx} ${gy+dw} A ${dw} ${dw} 0 0 0 ${gx-dw} ${gy}" fill="none" stroke="#64748b" stroke-width="1.2" stroke-dasharray="4,2"/>`]; }
+        default: return [];
+      }
+    }),
+    ...plan.windows.flatMap(w => {
+      const r = plan.rooms.find(ro => ro.id === w.roomId); if (!r) return [];
+      const rx=tx(r.x),ry=ty(r.y),rw=r.width*S,rh=r.height*S,ww=w.width*S,wt=8;
+      const gl = (x:number,y:number,wid:number,hgt:number,vert:boolean) => [
+        `<rect x="${x}" y="${y}" width="${wid}" height="${hgt}" fill="white"/>`,
+        `<rect x="${x}" y="${y}" width="${wid}" height="${hgt}" fill="#bae6fd" fill-opacity="0.7" stroke="#38bdf8" stroke-width="1.5"/>`,
+        vert ? `<line x1="${x}" y1="${y+hgt/2}" x2="${x+wid}" y2="${y+hgt/2}" stroke="#38bdf8" stroke-width="1"/>` : `<line x1="${x+wid/2}" y1="${y}" x2="${x+wid/2}" y2="${y+hgt}" stroke="#38bdf8" stroke-width="1"/>`,
+      ];
+      switch(w.wall) {
+        case 'top': return gl(rx+rw*w.position-ww/2,ry-wt/2,ww,wt,false);
+        case 'bottom': return gl(rx+rw*w.position-ww/2,ry+rh-wt/2,ww,wt,false);
+        case 'left': return gl(rx-wt/2,ry+rh*w.position-ww/2,wt,ww,true);
+        case 'right': return gl(rx+rw-wt/2,ry+rh*w.position-ww/2,wt,ww,true);
+        default: return [];
+      }
+    }),
+    ...plan.furniture.flatMap(f => {
+      const fx=tx(f.x),fy=ty(f.y),fw=f.width*S,fd=f.depth*S,cx2=fx+fw/2,cy2=fy+fd/2;
+      return [`<g transform="translate(${cx2},${cy2}) rotate(${f.rotation})">`,`<rect x="${-fw/2}" y="${-fd/2}" width="${fw}" height="${fd}" fill="${f.color}55" stroke="#374151" stroke-width="1"/>`,(fw>30&&fd>20)?`<text x="0" y="${fd/2-3}" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" fill="#1e293b">${escapeXml(f.name)}</text>`:'','</g>'].filter(Boolean);
+    }),
+    ...plan.rooms.flatMap(r => {
+      const cx2=tx(r.x)+r.width*S/2,cy2=ty(r.y)+r.height*S/2;
+      return [`<text x="${cx2}" y="${cy2-5}" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="bold" fill="#0f172a">${escapeXml(r.name)}</text>`,`<text x="${cx2}" y="${cy2+9}" text-anchor="middle" font-family="Arial,sans-serif" font-size="9" fill="#475569">${(r.width*r.height).toFixed(1)} m²</text>`];
+    }),
+    `<line x1="${M}" y1="${M-20}" x2="${M+planW}" y2="${M-20}" stroke="#94a3b8" stroke-width="0.8"/>`,
+    `<line x1="${M}" y1="${M-24}" x2="${M}" y2="${M-16}" stroke="#94a3b8" stroke-width="0.8"/>`,
+    `<line x1="${M+planW}" y1="${M-24}" x2="${M+planW}" y2="${M-16}" stroke="#94a3b8" stroke-width="0.8"/>`,
+    `<text x="${M+planW/2}" y="${M-25}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#475569">${(maxX-minX).toFixed(1)} m</text>`,
+    `<line x1="${M-20}" y1="${M}" x2="${M-20}" y2="${M+planH}" stroke="#94a3b8" stroke-width="0.8"/>`,
+    `<line x1="${M-24}" y1="${M}" x2="${M-16}" y2="${M}" stroke="#94a3b8" stroke-width="0.8"/>`,
+    `<line x1="${M-24}" y1="${M+planH}" x2="${M-16}" y2="${M+planH}" stroke="#94a3b8" stroke-width="0.8"/>`,
+    `<text x="${M-26}" y="${M+planH/2}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="#475569" transform="rotate(-90,${M-26},${M+planH/2})">${(maxY-minY).toFixed(1)} m</text>`,
+    `<line x1="${M}" y1="${M+planH+8}" x2="${svgW-M}" y2="${M+planH+8}" stroke="#e2e8f0" stroke-width="1"/>`,
+    `<text x="${M}" y="${M+planH+24}" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#0f172a">${escapeXml(plan.name)}</text>`,
+    `<text x="${svgW-M}" y="${M+planH+24}" text-anchor="end" font-family="Arial,sans-serif" font-size="9" fill="#64748b">${new Date().toLocaleDateString('lt-LT')} · Plotas: ${plan.rooms.reduce((s,r)=>s+r.width*r.height,0).toFixed(1)} m²</text>`,
+    `<rect x="${M}" y="${M+planH+34}" width="${5*S}" height="5" fill="none" stroke="#475569" stroke-width="1"/>`,
+    `<rect x="${M}" y="${M+planH+34}" width="${2.5*S}" height="5" fill="#475569"/>`,
+    `<text x="${M}" y="${M+planH+32}" font-family="Arial,sans-serif" font-size="8" fill="#475569">0</text>`,
+    `<text x="${M+5*S}" y="${M+planH+32}" font-family="Arial,sans-serif" font-size="8" fill="#475569">5m</text>`,
+    `</svg>`,
+  ];
+  const blob = new Blob([p.join('\n')], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${plan.name.replace(/\s+/g, '_')}-planas.svg`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 type DragState =
   | { id: string; type: 'room' | 'furniture'; offX: number; offY: number }
   | { id: string; type: 'door' | 'window'; room: Room };
@@ -37,7 +135,7 @@ export default function FloorPlanCanvas() {
   const [drawing, setDrawing] = useState<{ startX: number; startY: number } | null>(null);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [resizing, setResizing] = useState<{ id: string; handle: string; origRoom: Room } | null>(null);
-  const [hoverInfo, setHoverInfo] = useState<string | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
 
   useEffect(() => {
@@ -986,6 +1084,41 @@ export default function FloorPlanCanvas() {
         ctx.fillText(`${Math.abs(ex - sw.x).toFixed(1)}m × ${Math.abs(ey - sw.y).toFixed(1)}m`, cx + cw / 2, cy + ch / 2);
       }
     }
+
+    // Hover tooltip — direct DOM manipulation to avoid re-render at 60fps
+    const tt = tooltipRef.current;
+    if (tt) {
+      if (!dragging && !resizing && !drawing && state.tool === 'select') {
+        const hf = [...state.plan.furniture].reverse().find(f => {
+          const rad = (f.rotation * Math.PI) / 180;
+          const dx = world.x - (f.x + f.width / 2);
+          const dy = world.y - (f.y + f.depth / 2);
+          const lx = dx * Math.cos(-rad) - dy * Math.sin(-rad);
+          const ly = dx * Math.sin(-rad) + dy * Math.cos(-rad);
+          return Math.abs(lx) <= f.width / 2 && Math.abs(ly) <= f.depth / 2;
+        });
+        if (hf) {
+          tt.style.display = 'block';
+          tt.style.left = `${pos.x + 14}px`;
+          tt.style.top = `${pos.y - 30}px`;
+          tt.textContent = `${hf.name} · ${hf.width}×${hf.depth}m`;
+        } else {
+          const hr = state.plan.rooms.find(r =>
+            world.x >= r.x && world.x <= r.x + r.width && world.y >= r.y && world.y <= r.y + r.height
+          );
+          if (hr) {
+            tt.style.display = 'block';
+            tt.style.left = `${pos.x + 14}px`;
+            tt.style.top = `${pos.y - 30}px`;
+            tt.textContent = `${hr.name} · ${(hr.width * hr.height).toFixed(1)} m²`;
+          } else {
+            tt.style.display = 'none';
+          }
+        }
+      } else {
+        tt.style.display = 'none';
+      }
+    }
   }, [isPanning, panStart, resizing, dragging, drawing, state, dispatch, canvasToWorld, worldToCanvas, drawCanvas]);
 
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -1193,10 +1326,23 @@ export default function FloorPlanCanvas() {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={() => { setDragging(null); setIsPanning(false); }}
+        onMouseLeave={() => { setDragging(null); setIsPanning(false); if (tooltipRef.current) tooltipRef.current.style.display = 'none'; }}
+      />
+      {/* Hover tooltip */}
+      <div
+        ref={tooltipRef}
+        className="absolute pointer-events-none z-10 bg-slate-900/95 text-white text-xs px-2 py-1 rounded-lg shadow-lg border border-slate-700 whitespace-nowrap"
+        style={{ display: 'none' }}
       />
       {/* Export buttons */}
       <div className="absolute top-3 right-3 flex gap-1.5">
+        <button
+          onClick={() => exportPlanToSVG(state.plan)}
+          className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 backdrop-blur transition-all"
+          title="Eksportuoti kaip SVG (vektorinius)"
+        >
+          📐 SVG
+        </button>
         <button
           onClick={() => {
             const canvas = canvasRef.current;

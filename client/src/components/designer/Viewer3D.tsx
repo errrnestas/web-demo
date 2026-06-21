@@ -329,6 +329,12 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
                   <meshStandardMaterial color="#a8d8ea" transparent opacity={0.4} roughness={0.05} metalness={0.1} />
                 </mesh>
               );
+              result.push(
+                <mesh key={`sill-${wall}-${op.start}`} position={[gx, sill + 0.025, gz]} castShadow>
+                  <boxGeometry args={[segLen + 0.06, 0.05, wt + 0.1]} />
+                  <meshStandardMaterial color="#ccc8c0" roughness={0.65} metalness={0.04} />
+                </mesh>
+              );
             } else {
               gz = (wall === 'left' ? room.y : room.y) + segMid;
               gx = wall === 'left' ? room.x : room.x + room.width;
@@ -336,6 +342,12 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
                 <mesh key={`glass-${wall}-${op.start}`} position={[gx + (wall === 'left' ? -wt / 2 : wt / 2), glassY, gz]}>
                   <boxGeometry args={[wt * 0.3, winH, segLen]} />
                   <meshStandardMaterial color="#a8d8ea" transparent opacity={0.4} roughness={0.05} metalness={0.1} />
+                </mesh>
+              );
+              result.push(
+                <mesh key={`sill-${wall}-${op.start}`} position={[gx, sill + 0.025, gz]} castShadow>
+                  <boxGeometry args={[wt + 0.1, 0.05, segLen + 0.06]} />
+                  <meshStandardMaterial color="#ccc8c0" roughness={0.65} metalness={0.04} />
                 </mesh>
               );
             }
