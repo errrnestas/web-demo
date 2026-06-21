@@ -1,9 +1,9 @@
-import { Suspense, useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sky, Environment, PerspectiveCamera, Html } from '@react-three/drei';
+import { Suspense, useRef, useMemo, useState, useEffect, useCallback } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Sky, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 import { useDesigner } from '@/lib/designer-store';
-import type { Room, Door, WindowElement, FurnitureItem } from '@/types/designer';
+import type { Room, Door, WindowElement, FurnitureItem, FloorPlan } from '@/types/designer';
 import { WALL_MATERIAL_COLORS, FLOOR_MATERIAL_COLORS } from '@/types/designer';
 
 const WALL_THICKNESS = 0.18;
@@ -435,7 +435,7 @@ function FurnitureShape({ item }: { item: FurnitureItem }) {
   );
 }
 
-function Ceiling({ plan }: { plan: import('@/types/designer').FloorPlan }) {
+function Ceiling({ plan }: { plan: FloorPlan }) {
   const rooms = plan.rooms;
   return (
     <>
@@ -494,11 +494,75 @@ function HouseScene() {
   );
 }
 
+type CameraMode = 'orbit' | 'top' | 'walk';
+
+function WalkControls({ enabled }: { enabled: boolean }) {
+  const { camera, gl } = useThree();
+  const keysRef = useRef<Record<string, boolean>>({});
+  const velocityRef = useRef(new THREE.Vector3());
+  const pitchRef = useRef(0);
+  const yawRef = useRef(0);
+  const lockedRef = useRef(false);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const canvas = gl.domElement;
+
+    const onKey = (e: KeyboardEvent, down: boolean) => { keysRef.current[e.code] = down; };
+    const onMouseMove = (e: MouseEvent) => {
+      if (!lockedRef.current) return;
+      yawRef.current -= e.movementX * 0.002;
+      pitchRef.current = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, pitchRef.current - e.movementY * 0.002));
+    };
+    const onLockChange = () => { lockedRef.current = !!document.pointerLockElement; };
+    const onClick = () => { canvas.requestPointerLock(); };
+
+    window.addEventListener('keydown', e => onKey(e, true));
+    window.addEventListener('keyup', e => onKey(e, false));
+    window.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('pointerlockchange', onLockChange);
+    canvas.addEventListener('click', onClick);
+
+    camera.position.set(5, 1.7, 5);
+    camera.lookAt(8, 1.7, 5);
+
+    return () => {
+      window.removeEventListener('keydown', e => onKey(e, true));
+      window.removeEventListener('keyup', e => onKey(e, false));
+      window.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('pointerlockchange', onLockChange);
+      canvas.removeEventListener('click', onClick);
+      if (document.exitPointerLock) document.exitPointerLock();
+    };
+  }, [enabled, camera, gl]);
+
+  useFrame((_, delta) => {
+    if (!enabled) return;
+    const speed = 4 * delta;
+    const k = keysRef.current;
+    const euler = new THREE.Euler(pitchRef.current, yawRef.current, 0, 'YXZ');
+    const dir = new THREE.Vector3();
+
+    if (k['KeyW']) dir.z -= 1;
+    if (k['KeyS']) dir.z += 1;
+    if (k['KeyA']) dir.x -= 1;
+    if (k['KeyD']) dir.x += 1;
+
+    dir.normalize().applyEuler(new THREE.Euler(0, yawRef.current, 0)).multiplyScalar(speed);
+    camera.position.add(dir);
+    camera.position.y = 1.7;
+    camera.setRotationFromEuler(euler);
+  });
+
+  return null;
+}
+
 export default function Viewer3D() {
   const { state } = useDesigner();
   const allRooms = state.plan.rooms;
+  const [cameraMode, setCameraMode] = useState<CameraMode>('orbit');
 
-  // Calculate center of floor plan
   const center = useMemo(() => {
     if (allRooms.length === 0) return { x: 5, z: 5 };
     const minX = Math.min(...allRooms.map(r => r.x));
@@ -508,6 +572,9 @@ export default function Viewer3D() {
     return { x: (minX + maxX) / 2, z: (minY + maxY) / 2 };
   }, [allRooms]);
 
+  const orbitPos: [number, number, number] = [center.x - 8, 8, center.z + 12];
+  const topPos: [number, number, number] = [center.x, 35, center.z];
+
   return (
     <div className="w-full h-full relative bg-slate-900">
       <Canvas
@@ -515,26 +582,76 @@ export default function Viewer3D() {
         gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.0 }}
         dpr={[1, 2]}
       >
-        <PerspectiveCamera makeDefault position={[center.x - 8, 8, center.z + 12]} fov={55} near={0.1} far={500} />
+        {cameraMode !== 'walk' && (
+          <PerspectiveCamera
+            makeDefault
+            position={cameraMode === 'top' ? topPos : orbitPos}
+            fov={cameraMode === 'top' ? 60 : 55}
+            near={0.1}
+            far={500}
+          />
+        )}
+        {cameraMode === 'walk' && (
+          <PerspectiveCamera makeDefault position={[center.x, 1.7, center.z + 3]} fov={75} near={0.05} far={200} />
+        )}
         <Sky sunPosition={[100, 80, 100]} />
         <Suspense fallback={null}>
           <HouseScene />
         </Suspense>
-        <OrbitControls
-          target={[center.x, 1.2, center.z]}
-          maxPolarAngle={Math.PI / 2 - 0.05}
-          minDistance={2}
-          maxDistance={60}
-          enableDamping
-          dampingFactor={0.05}
-        />
+        {cameraMode === 'orbit' && (
+          <OrbitControls
+            target={[center.x, 1.2, center.z]}
+            maxPolarAngle={Math.PI / 2 - 0.05}
+            minDistance={2}
+            maxDistance={60}
+            enableDamping
+            dampingFactor={0.05}
+          />
+        )}
+        {cameraMode === 'top' && (
+          <OrbitControls
+            target={[center.x, 0, center.z]}
+            maxPolarAngle={0.1}
+            minPolarAngle={0}
+            minDistance={10}
+            maxDistance={80}
+            enableDamping
+          />
+        )}
+        {cameraMode === 'walk' && <WalkControls enabled={true} />}
       </Canvas>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-slate-300 bg-slate-800/80 px-4 py-2 rounded-full pointer-events-none backdrop-blur">
-        Sukite pelę — orbitavimas · Scroll — priartinimas · Dešinas mygtukas — judėjimas
+      {/* Camera mode controls */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1.5 bg-slate-900/90 p-1.5 rounded-xl backdrop-blur border border-slate-700">
+        {(['orbit', 'top', 'walk'] as CameraMode[]).map(mode => (
+          <button
+            key={mode}
+            onClick={() => setCameraMode(mode)}
+            className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${
+              cameraMode === mode
+                ? 'bg-blue-600 text-white'
+                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+            }`}
+          >
+            {mode === 'orbit' ? '🔄 Orbitavimas' : mode === 'top' ? '🗺️ Iš viršaus' : '🚶 Vaikščiojimas'}
+          </button>
+        ))}
       </div>
 
-      <div className="absolute top-4 right-4 text-xs text-slate-400 bg-slate-800/70 px-3 py-1.5 rounded-lg backdrop-blur">
+      {cameraMode === 'walk' && (
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-xs text-slate-300 bg-slate-900/90 px-4 py-2.5 rounded-xl pointer-events-none backdrop-blur border border-slate-700">
+          <div className="text-center mb-1 font-medium">Spustelėkite ekraną, kad užfiksuotumėte pelę</div>
+          <div className="text-slate-500">W/A/S/D — judėjimas · Pelė — žiūrėjimas</div>
+        </div>
+      )}
+
+      {cameraMode === 'orbit' && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-slate-400 bg-slate-800/80 px-4 py-2 rounded-full pointer-events-none backdrop-blur">
+          Kairė pelė — sukimas · Scroll — priartinimas · Dešinė pelė — judėjimas
+        </div>
+      )}
+
+      <div className="absolute top-4 right-4 text-xs text-slate-400 bg-slate-800/70 px-3 py-1.5 rounded-lg backdrop-blur border border-slate-700/50">
         {state.plan.rooms.length} kambariai · {state.plan.furniture.length} baldai
       </div>
     </div>

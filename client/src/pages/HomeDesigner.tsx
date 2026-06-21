@@ -4,6 +4,7 @@ import { designerReducer } from '@/lib/designer-reducer';
 import LeftPanel from '@/components/designer/LeftPanel';
 import RightPanel from '@/components/designer/RightPanel';
 import FloorPlanCanvas from '@/components/designer/FloorPlanCanvas';
+import { ExportButton } from '@/components/designer/ExportPanel';
 import { cn } from '@/lib/utils';
 import { Link } from 'wouter';
 
@@ -150,12 +151,7 @@ export default function HomeDesigner() {
           >
             📂 Atidaryti
           </button>
-          <button
-            onClick={exportPlan}
-            className="text-xs px-3 py-1.5 rounded-lg bg-blue-700 border border-blue-600 text-white hover:bg-blue-600 transition-all shrink-0"
-          >
-            💾 Eksportuoti
-          </button>
+          <ExportButton />
         </header>
 
         {/* Main content */}
