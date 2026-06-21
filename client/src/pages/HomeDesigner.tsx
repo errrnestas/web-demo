@@ -164,6 +164,22 @@ export default function HomeDesigner() {
           <div className="w-px h-5 bg-slate-700" />
 
           <button
+            onClick={() => {
+              if (confirm('Sukurti naują tuščią projektą? Dabartinis projektas bus prarastas.')) {
+                dispatch({ type: 'SET_PLAN', plan: {
+                  id: `plan-${Date.now()}`,
+                  name: 'Naujas projektas',
+                  rooms: [], doors: [], windows: [], furniture: [],
+                  wallHeight: 2.6,
+                  createdAt: Date.now(), updatedAt: Date.now(),
+                }});
+              }
+            }}
+            className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-all shrink-0"
+          >
+            + Naujas
+          </button>
+          <button
             onClick={() => setShowSaveLoad(true)}
             className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white transition-all shrink-0"
           >

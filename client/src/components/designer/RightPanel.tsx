@@ -221,14 +221,28 @@ function FurnitureEditor({ item }: { item: FurnitureItem }) {
         </div>
       </div>
 
-      <div className="bg-slate-800/60 rounded-lg p-3 text-xs text-slate-400">
-        <div className="flex justify-between mb-1">
-          <span>Plotis:</span>
-          <span className="text-white">{item.width}m</span>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">Plotis (m)</label>
+          <input
+            type="number"
+            step="0.05"
+            min="0.1"
+            value={parseFloat(item.width.toFixed(2))}
+            onChange={e => update({ width: parseFloat(e.target.value) || item.width })}
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          />
         </div>
-        <div className="flex justify-between">
-          <span>Gylis:</span>
-          <span className="text-white">{item.depth}m</span>
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">Gylis (m)</label>
+          <input
+            type="number"
+            step="0.05"
+            min="0.1"
+            value={parseFloat(item.depth.toFixed(2))}
+            onChange={e => update({ depth: parseFloat(e.target.value) || item.depth })}
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          />
         </div>
       </div>
 

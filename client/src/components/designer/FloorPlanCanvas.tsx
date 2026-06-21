@@ -269,21 +269,40 @@ export default function FloorPlanCanvas() {
       const rh = room.height * scaleRef.current;
       const winW = win.width * scaleRef.current;
       const isSelected = win.id === selectedId;
+      const frameColor = isSelected ? '#38bdf8' : '#94d2f0';
+      const glassColor = isSelected ? 'rgba(186,230,253,0.8)' : 'rgba(125,211,252,0.5)';
 
-      ctx.fillStyle = isSelected ? '#bae6fd' : '#7dd3fc';
+      const drawWindow = (wx: number, wy: number, ww: number, wh: number) => {
+        // Frame
+        ctx.fillStyle = frameColor;
+        ctx.fillRect(wx, wy, ww, wh);
+        // Glass pane
+        ctx.fillStyle = glassColor;
+        const inset = 2;
+        ctx.fillRect(wx + inset, wy + inset, ww - inset * 2, wh - inset * 2);
+        // Center divider
+        ctx.strokeStyle = frameColor;
+        ctx.lineWidth = 1;
+        if (ww > wh) {
+          // Horizontal window: vertical divider
+          ctx.beginPath(); ctx.moveTo(wx + ww / 2, wy); ctx.lineTo(wx + ww / 2, wy + wh); ctx.stroke();
+        } else {
+          ctx.beginPath(); ctx.moveTo(wx, wy + wh / 2); ctx.lineTo(wx + ww, wy + wh / 2); ctx.stroke();
+        }
+      };
 
       switch (win.wall) {
         case 'top':
-          ctx.fillRect(rx + rw * win.position - winW / 2, ry - 4, winW, 8);
+          drawWindow(rx + rw * win.position - winW / 2, ry - 4, winW, 8);
           break;
         case 'bottom':
-          ctx.fillRect(rx + rw * win.position - winW / 2, ry + rh - 4, winW, 8);
+          drawWindow(rx + rw * win.position - winW / 2, ry + rh - 4, winW, 8);
           break;
         case 'left':
-          ctx.fillRect(rx - 4, ry + rh * win.position - winW / 2, 8, winW);
+          drawWindow(rx - 4, ry + rh * win.position - winW / 2, 8, winW);
           break;
         case 'right':
-          ctx.fillRect(rx + rw - 4, ry + rh * win.position - winW / 2, 8, winW);
+          drawWindow(rx + rw - 4, ry + rh * win.position - winW / 2, 8, winW);
           break;
       }
     }
@@ -1003,21 +1022,43 @@ export default function FloorPlanCanvas() {
         onMouseUp={handleMouseUp}
         onMouseLeave={() => { setDragging(null); setIsPanning(false); }}
       />
-      {/* PNG Export */}
-      <button
-        onClick={() => {
-          const canvas = canvasRef.current;
-          if (!canvas) return;
-          const link = document.createElement('a');
-          link.download = 'floor-plan.png';
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-        }}
-        className="absolute top-3 right-3 text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 backdrop-blur transition-all"
-        title="Eksportuoti kaip PNG"
-      >
-        📷 PNG
-      </button>
+      {/* Export buttons */}
+      <div className="absolute top-3 right-3 flex gap-1.5">
+        <button
+          onClick={() => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const link = document.createElement('a');
+            link.download = `${state.plan.name.replace(/\s+/g, '_')}-planas.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          }}
+          className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 backdrop-blur transition-all"
+          title="Eksportuoti kaip PNG"
+        >
+          📷 PNG
+        </button>
+        <button
+          onClick={() => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const dataUrl = canvas.toDataURL('image/png');
+            const win = window.open('', '_blank');
+            if (!win) return;
+            win.document.write(`<html><head><title>${state.plan.name} - Planas</title><style>
+              body{margin:0;background:#1a1a2e;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+              img{max-width:100%;max-height:100vh;object-fit:contain;}
+              @media print{body{background:#fff;}img{max-width:100%;}}
+            </style></head><body><img src="${dataUrl}" /></body></html>`);
+            win.document.close();
+            setTimeout(() => win.print(), 500);
+          }}
+          className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 backdrop-blur transition-all"
+          title="Spausdinti"
+        >
+          🖨️ Spausd.
+        </button>
+      </div>
 
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-1">

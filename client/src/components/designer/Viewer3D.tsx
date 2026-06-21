@@ -212,7 +212,7 @@ function WallSegment({
   );
 }
 
-function RoomWalls({ room, doors, windows, wallHeight }: { room: Room; doors: Door[]; windows: WindowElement[]; wallHeight: number }) {
+function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room; doors: Door[]; windows: WindowElement[]; wallHeight: number; allRooms: Room[] }) {
   const wc = WALL_MATERIAL_COLORS[room.wallMaterial] || '#f8f8f8';
   const wh = wallHeight;
   const wt = WALL_THICKNESS;
@@ -222,6 +222,31 @@ function RoomWalls({ room, doors, windows, wallHeight }: { room: Room; doors: Do
 
   const walls = useMemo(() => {
     const result: JSX.Element[] = [];
+    const EPSILON = 0.06;
+
+    // Returns true if this wall is shared with another room and should be skipped
+    // (the room with the smaller id renders the shared wall)
+    const shouldSkipWall = (wall: 'top' | 'bottom' | 'left' | 'right'): boolean => {
+      for (const other of allRooms) {
+        if (other.id === room.id) continue;
+        let shared = false;
+        if (wall === 'top') {
+          shared = Math.abs(other.y + other.height - room.y) < EPSILON
+            && other.x < room.x + room.width - EPSILON && other.x + other.width > room.x + EPSILON;
+        } else if (wall === 'bottom') {
+          shared = Math.abs(other.y - (room.y + room.height)) < EPSILON
+            && other.x < room.x + room.width - EPSILON && other.x + other.width > room.x + EPSILON;
+        } else if (wall === 'left') {
+          shared = Math.abs(other.x + other.width - room.x) < EPSILON
+            && other.y < room.y + room.height - EPSILON && other.y + other.height > room.y + EPSILON;
+        } else {
+          shared = Math.abs(other.x - (room.x + room.width)) < EPSILON
+            && other.y < room.y + room.height - EPSILON && other.y + other.height > room.y + EPSILON;
+        }
+        if (shared && other.id < room.id) return true;
+      }
+      return false;
+    };
 
     const makeWall = (
       wall: 'top' | 'bottom' | 'left' | 'right',
@@ -344,13 +369,13 @@ function RoomWalls({ room, doors, windows, wallHeight }: { room: Room; doors: Do
       }
     };
 
-    makeWall('top', room.x, room.y, room.width, true);
-    makeWall('bottom', room.x, room.y + room.height, room.width, true);
-    makeWall('left', room.x, room.y, room.height, false);
-    makeWall('right', room.x + room.width, room.y, room.height, false);
+    if (!shouldSkipWall('top'))    makeWall('top',    room.x, room.y,              room.width,  true);
+    if (!shouldSkipWall('bottom')) makeWall('bottom', room.x, room.y + room.height, room.width,  true);
+    if (!shouldSkipWall('left'))   makeWall('left',   room.x, room.y,              room.height, false);
+    if (!shouldSkipWall('right'))  makeWall('right',  room.x + room.width, room.y, room.height, false);
 
     return result;
-  }, [room, roomDoors, roomWindows, wc]);
+  }, [room, roomDoors, roomWindows, wc, allRooms]);
 
   return <>{walls}</>;
 }
@@ -674,7 +699,7 @@ function HouseScene({ showLabels, showCeiling, lighting }: { showLabels: boolean
       {plan.rooms.map(room => (
         <group key={room.id}>
           <RoomFloor room={room} showLabels={showLabels} />
-          <RoomWalls room={room} doors={plan.doors} windows={plan.windows} wallHeight={plan.wallHeight} />
+          <RoomWalls room={room} doors={plan.doors} windows={plan.windows} wallHeight={plan.wallHeight} allRooms={plan.rooms} />
         </group>
       ))}
 
