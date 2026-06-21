@@ -119,7 +119,8 @@ export default function FloorPlanCanvas() {
       ctx.fillRect(x, y, w, h);
 
       // Floor fill (inner, inset by wall thickness)
-      ctx.fillStyle = ROOM_COLORS[room.type] + 'ee';
+      const roomFillColor = room.floorColor || ROOM_COLORS[room.type];
+      ctx.fillStyle = roomFillColor + 'cc';
       ctx.fillRect(x + wallPx, y + wallPx, w - wallPx * 2, h - wallPx * 2);
 
       // Selection glow

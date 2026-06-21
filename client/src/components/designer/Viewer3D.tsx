@@ -154,7 +154,7 @@ function createWallTexture(material: string): THREE.CanvasTexture {
 }
 
 function RoomFloor({ room, showLabels }: { room: Room; showLabels: boolean }) {
-  const color = FLOOR_MATERIAL_COLORS[room.floorMaterial] || '#c8a26b';
+  const color = room.floorColor || FLOOR_MATERIAL_COLORS[room.floorMaterial] || '#c8a26b';
   const roughness = room.floorMaterial === 'carpet' ? 0.95 : room.floorMaterial === 'marble' ? 0.05 : room.floorMaterial === 'vinyl' ? 0.4 : 0.7;
   const metalness = room.floorMaterial === 'marble' ? 0.1 : 0.0;
   const cx = room.x + room.width / 2;
@@ -213,7 +213,7 @@ function WallSegment({
 }
 
 function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room; doors: Door[]; windows: WindowElement[]; wallHeight: number; allRooms: Room[] }) {
-  const wc = WALL_MATERIAL_COLORS[room.wallMaterial] || '#f8f8f8';
+  const wc = room.wallColor || WALL_MATERIAL_COLORS[room.wallMaterial] || '#f8f8f8';
   const wh = wallHeight;
   const wt = WALL_THICKNESS;
 

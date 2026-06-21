@@ -107,7 +107,16 @@ function RoomEditor({ room }: { room: Room }) {
       </div>
 
       <div>
-        <label className="text-xs text-slate-400 block mb-2">Grindų danga</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs text-slate-400">Grindų danga</label>
+          <input
+            type="color"
+            value={room.floorColor}
+            onChange={e => update({ floorColor: e.target.value })}
+            title="Pritaikyta spalva"
+            className="w-6 h-6 rounded cursor-pointer border border-slate-600 bg-slate-800"
+          />
+        </div>
         <div className="grid grid-cols-3 gap-1.5">
           {FLOOR_MATERIALS.map(([mat, color]) => (
             <button
@@ -126,7 +135,16 @@ function RoomEditor({ room }: { room: Room }) {
       </div>
 
       <div>
-        <label className="text-xs text-slate-400 block mb-2">Sienų spalva</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs text-slate-400">Sienų spalva</label>
+          <input
+            type="color"
+            value={room.wallColor}
+            onChange={e => update({ wallColor: e.target.value })}
+            title="Pritaikyta spalva"
+            className="w-6 h-6 rounded cursor-pointer border border-slate-600 bg-slate-800"
+          />
+        </div>
         <div className="grid grid-cols-3 gap-1.5">
           {WALL_MATERIALS.map(([mat, color]) => (
             <button
