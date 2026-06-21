@@ -794,17 +794,19 @@ export default function Viewer3D() {
   const [lighting, setLighting] = useState<LightingPreset>('day');
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
-  const center = useMemo(() => {
-    if (allRooms.length === 0) return { x: 5, z: 5 };
+  const { center, planDiag } = useMemo(() => {
+    if (allRooms.length === 0) return { center: { x: 5, z: 5 }, planDiag: 15 };
     const minX = Math.min(...allRooms.map(r => r.x));
     const maxX = Math.max(...allRooms.map(r => r.x + r.width));
     const minY = Math.min(...allRooms.map(r => r.y));
     const maxY = Math.max(...allRooms.map(r => r.y + r.height));
-    return { x: (minX + maxX) / 2, z: (minY + maxY) / 2 };
+    const diag = Math.hypot(maxX - minX, maxY - minY);
+    return { center: { x: (minX + maxX) / 2, z: (minY + maxY) / 2 }, planDiag: Math.max(10, diag) };
   }, [allRooms]);
 
-  const orbitPos: [number, number, number] = [center.x - 8, 8, center.z + 12];
-  const topPos: [number, number, number] = [center.x, 35, center.z];
+  const camDist = planDiag * 0.8;
+  const orbitPos: [number, number, number] = [center.x - camDist * 0.6, camDist * 0.7, center.z + camDist * 0.9];
+  const topPos: [number, number, number] = [center.x, planDiag * 2.5, center.z];
 
   const handleScreenshot = useCallback(() => {
     const canvas = canvasContainerRef.current?.querySelector('canvas');

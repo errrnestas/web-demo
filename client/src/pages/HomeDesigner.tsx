@@ -59,6 +59,9 @@ export default function HomeDesigner() {
             else dispatch({ type: 'UNDO' });
           }
           break;
+        case '?':
+          setShowHelp(h => !h);
+          break;
         case 'home':
         case 'g':
           window.dispatchEvent(new CustomEvent('designer:fitview'));
@@ -106,6 +109,7 @@ export default function HomeDesigner() {
   const totalArea = state.plan.rooms.reduce((s, r) => s + r.width * r.height, 0);
   const [rightTab, setRightTab] = useState<'props' | 'cost'>('props');
   const [showSaveLoad, setShowSaveLoad] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   return (
     <DesignerContext.Provider value={{ state, dispatch }}>
@@ -192,6 +196,13 @@ export default function HomeDesigner() {
             📂 JSON
           </button>
           <ExportButton />
+          <button
+            onClick={() => setShowHelp(true)}
+            className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center text-xs font-bold shrink-0"
+            title="Klaviatūros nuorodos"
+          >
+            ?
+          </button>
         </header>
 
         {/* Main content */}
@@ -246,6 +257,38 @@ export default function HomeDesigner() {
 
         <MobileBottomSheet />
         {showSaveLoad && <SaveLoadPanel onClose={() => setShowSaveLoad(false)} />}
+
+        {showHelp && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowHelp(false)}>
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-white">⌨️ Klaviatūros nuorodos</h2>
+                <button onClick={() => setShowHelp(false)} className="text-slate-400 hover:text-white">✕</button>
+              </div>
+              <div className="space-y-2 text-sm">
+                {[
+                  ['S', 'Pasirinkimo įrankis'],
+                  ['R', 'Kambarys (arba sukti baldą)'],
+                  ['D', 'Durys'],
+                  ['W', 'Langas'],
+                  ['F', 'Baldai'],
+                  ['G', 'Tilpti į ekraną'],
+                  ['Del / Backspace', 'Ištrinti pasirinktą'],
+                  ['Ctrl+Z', 'Atšaukti'],
+                  ['Ctrl+Shift+Z', 'Grąžinti'],
+                  ['Esc', 'Atšaukti pasirinkimą'],
+                  ['Scroll', 'Priartinti/tolinti'],
+                  ['Alt+vilkti', 'Slankioti'],
+                ].map(([key, desc]) => (
+                  <div key={key} className="flex items-center justify-between gap-4">
+                    <kbd className="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-xs text-slate-300 font-mono shrink-0">{key}</kbd>
+                    <span className="text-slate-400 text-right">{desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Status bar */}
         <footer className="h-7 bg-slate-900 border-t border-slate-700 hidden lg:flex items-center px-4 gap-6 shrink-0">
