@@ -78,7 +78,7 @@ export default function LeftPanel() {
                     setTimeout(() => window.dispatchEvent(new CustomEvent('designer:fitview')), 50);
                   }
                 }}
-                className="w-full text-left px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-indigo-600 hover:bg-slate-750 transition-all"
+                className="w-full text-left px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-indigo-600 hover:bg-slate-700 transition-all"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base">{t.icon}</span>

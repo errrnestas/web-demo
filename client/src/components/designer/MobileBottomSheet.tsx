@@ -158,7 +158,7 @@ export default function MobileBottomSheet() {
 
       {/* Furniture bottom sheet */}
       {open && state.tool === 'furniture' && (
-        <div className="fixed inset-0 z-60 lg:hidden flex flex-col justify-end">
+        <div className="fixed inset-0 z-[60] lg:hidden flex flex-col justify-end">
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <div className="relative bg-slate-900 rounded-t-2xl border-t border-slate-700 max-h-[70vh] flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
