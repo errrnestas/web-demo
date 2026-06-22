@@ -747,7 +747,7 @@ export default function FloorPlanCanvas() {
     // Scale bar
     const barMeters = 5;
     const barPx = barMeters * scaleRef.current;
-    const bx = 16, by = canvas.height - 28;
+    const bx = 28, by = canvas.height - 28;
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.fillRect(bx - 4, by - 4, barPx + 8, 20);
     ctx.fillStyle = '#60a5fa';
@@ -837,7 +837,69 @@ export default function FloorPlanCanvas() {
       ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
 
-  }, [state, panOffset, drawing, worldToCanvas, measureStart]);
+    // Rulers along top and left edges
+    {
+      const RL = 20; // ruler width/height in px
+      const labelInterval = scaleRef.current >= 40 ? 1 : scaleRef.current >= 20 ? 2 : 5; // meters between labels
+      const minorInterval = labelInterval / 2;
+
+      // Draw ruler backgrounds
+      ctx.fillStyle = 'rgba(15,23,42,0.88)';
+      ctx.fillRect(0, 0, canvas.width, RL);
+      ctx.fillRect(0, 0, RL, canvas.height);
+      ctx.fillStyle = 'rgba(15,23,42,0.95)';
+      ctx.fillRect(0, 0, RL, RL); // corner square
+
+      // Determine world coordinate range visible
+      const startWorld = canvasToWorld(RL, RL);
+      const endWorld = canvasToWorld(canvas.width, canvas.height);
+      const mxStart = Math.floor(startWorld.x / minorInterval) * minorInterval;
+      const myStart = Math.floor(startWorld.y / minorInterval) * minorInterval;
+
+      ctx.fillStyle = '#64748b';
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.font = '8px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+
+      // Horizontal ruler ticks
+      for (let m = mxStart; m <= endWorld.x + minorInterval; m = Math.round((m + minorInterval) * 1000) / 1000) {
+        const px = worldToCanvas(m, 0).x;
+        if (px < RL || px > canvas.width) continue;
+        const isMajor = Math.abs(m % labelInterval) < 0.001 || Math.abs(m % labelInterval - labelInterval) < 0.001;
+        const tickH = isMajor ? RL * 0.6 : RL * 0.3;
+        ctx.strokeStyle = isMajor ? '#475569' : '#1e293b';
+        ctx.beginPath(); ctx.moveTo(px, RL - tickH); ctx.lineTo(px, RL); ctx.stroke();
+        if (isMajor && px > RL + 10) {
+          ctx.fillStyle = '#64748b';
+          ctx.fillText(`${m}m`, px, 3);
+        }
+      }
+
+      // Vertical ruler ticks
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let m = myStart; m <= endWorld.y + minorInterval; m = Math.round((m + minorInterval) * 1000) / 1000) {
+        const py = worldToCanvas(0, m).y;
+        if (py < RL || py > canvas.height) continue;
+        const isMajor = Math.abs(m % labelInterval) < 0.001 || Math.abs(m % labelInterval - labelInterval) < 0.001;
+        const tickW = isMajor ? RL * 0.6 : RL * 0.3;
+        ctx.strokeStyle = isMajor ? '#475569' : '#1e293b';
+        ctx.beginPath(); ctx.moveTo(RL - tickW, py); ctx.lineTo(RL, py); ctx.stroke();
+        if (isMajor && py > RL + 10) {
+          ctx.fillStyle = '#64748b';
+          ctx.save();
+          ctx.translate(3, py);
+          ctx.rotate(-Math.PI / 2);
+          ctx.textAlign = 'center';
+          ctx.fillText(`${m}m`, 0, 0);
+          ctx.restore();
+        }
+      }
+    }
+
+  }, [state, panOffset, drawing, worldToCanvas, canvasToWorld, measureStart]);
 
   useEffect(() => {
     drawCanvas();
