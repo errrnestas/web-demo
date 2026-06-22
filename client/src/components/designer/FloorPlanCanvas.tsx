@@ -1149,7 +1149,7 @@ export default function FloorPlanCanvas() {
           case 'bm': height = Math.max(minSize, wy - orig.y); break;
           case 'br': width = Math.max(minSize, wx - orig.x); height = Math.max(minSize, wy - orig.y); break;
         }
-        dispatch({ type: 'UPDATE_ROOM', room: { ...room, x, y, width, height } });
+        dispatch({ type: 'UPDATE_ROOM_LIVE', room: { ...room, x, y, width, height } });
       }
       return;
     }
@@ -1216,7 +1216,7 @@ export default function FloorPlanCanvas() {
             }
           }
           guideLinesRef.current = { vertX: snapVertX, horizY: snapHorizY };
-          dispatch({ type: 'UPDATE_ROOM', room: { ...room, x: sx, y: sy } });
+          dispatch({ type: 'UPDATE_ROOM_LIVE', room: { ...room, x: sx, y: sy } });
         }
       } else {
         const item = state.plan.furniture.find(f => f.id === dragging.id);
@@ -1246,7 +1246,7 @@ export default function FloorPlanCanvas() {
             }
           }
           guideLinesRef.current = { vertX: snapVertX, horizY: snapHorizY };
-          dispatch({ type: 'UPDATE_FURNITURE', item: { ...item, x: sx, y: sy } });
+          dispatch({ type: 'UPDATE_FURNITURE_LIVE', item: { ...item, x: sx, y: sy } });
         }
       }
     }
@@ -1499,7 +1499,23 @@ export default function FloorPlanCanvas() {
 
   const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (isPanning) { setIsPanning(false); return; }
-    if (resizing) { setResizing(null); return; }
+    if (resizing) {
+      // Commit resize to history
+      const room = state.plan.rooms.find(r => r.id === resizing.id);
+      if (room) dispatch({ type: 'UPDATE_ROOM', room });
+      setResizing(null);
+      return;
+    }
+    if (dragging) {
+      // Commit final drag position to history
+      if (dragging.type === 'room') {
+        const room = state.plan.rooms.find(r => r.id === dragging.id);
+        if (room) dispatch({ type: 'UPDATE_ROOM', room });
+      } else if (dragging.type === 'furniture') {
+        const item = state.plan.furniture.find(f => f.id === dragging.id);
+        if (item) dispatch({ type: 'UPDATE_FURNITURE', item });
+      }
+    }
     setDragging(null);
     guideLinesRef.current = { vertX: null, horizY: null };
 
@@ -1874,7 +1890,18 @@ export default function FloorPlanCanvas() {
         onMouseUp={handleMouseUp}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
-        onMouseLeave={() => { setDragging(null); setIsPanning(false); guideLinesRef.current = { vertX: null, horizY: null }; if (tooltipRef.current) tooltipRef.current.style.display = 'none'; }}
+        onMouseLeave={() => {
+          if (dragging) {
+            if (dragging.type === 'room') {
+              const room = state.plan.rooms.find(r => r.id === dragging.id);
+              if (room) dispatch({ type: 'UPDATE_ROOM', room });
+            } else if (dragging.type === 'furniture') {
+              const item = state.plan.furniture.find(f => f.id === dragging.id);
+              if (item) dispatch({ type: 'UPDATE_FURNITURE', item });
+            }
+          }
+          setDragging(null); setIsPanning(false); guideLinesRef.current = { vertX: null, horizY: null }; if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+        }}
       />
       {/* Empty-state overlay */}
       {state.plan.rooms.length === 0 && !drawing && (
