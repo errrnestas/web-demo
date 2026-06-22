@@ -1,6 +1,7 @@
 import { Suspense, useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sky, PerspectiveCamera, Text } from '@react-three/drei';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { useDesigner } from '@/lib/designer-store';
 import type { Room, Door, WindowElement, FurnitureItem, FloorPlan } from '@/types/designer';
@@ -1345,6 +1346,17 @@ export default function Viewer3D() {
           />
         )}
         {cameraMode === 'walk' && <WalkControls enabled={true} startX={center.x} startZ={center.z} />}
+        {lighting !== 'day' && (
+          <EffectComposer>
+            <Bloom
+              intensity={lighting === 'night' ? 0.8 : 0.35}
+              luminanceThreshold={lighting === 'night' ? 0.55 : 0.75}
+              luminanceSmoothing={0.9}
+              mipmapBlur
+            />
+            <Vignette offset={0.3} darkness={lighting === 'night' ? 0.7 : 0.4} />
+          </EffectComposer>
+        )}
       </Canvas>
 
       {/* Camera mode controls */}
