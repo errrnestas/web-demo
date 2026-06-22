@@ -280,14 +280,14 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
       const wallWindows = roomWindows.filter(w => w.wall === wall);
 
       // Collect all openings and sort by position
-      const openings: { start: number; end: number; type: 'door' | 'window'; topY?: number; door?: Door }[] = [];
+      const openings: { start: number; end: number; type: 'door' | 'window'; topY?: number; sillHeight?: number; door?: Door }[] = [];
       for (const d of wallDoors) {
         const start = d.position * (wallLength - d.width);
         openings.push({ start, end: start + d.width, type: 'door', door: d });
       }
       for (const w of wallWindows) {
         const start = w.position * wallLength - w.width / 2;
-        openings.push({ start, end: start + w.width, type: 'window', topY: w.sillHeight + w.height });
+        openings.push({ start, end: start + w.width, type: 'window', sillHeight: w.sillHeight, topY: w.sillHeight + w.height });
       }
       openings.sort((a, b) => a.start - b.start);
 
@@ -302,20 +302,12 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
             segments.push({ from: cursor, to: op.start, fromY: 0, toY: wh });
           }
           if (op.type === 'window') {
-            segments.push({ from: op.start, to: op.end, fromY: 0, toY: op.type === 'window' ? (roomWindows.find(w => {
-              const start = w.position * wallLength - w.width / 2;
-              return Math.abs(start - op.start) < 0.01;
-            })?.sillHeight ?? 0.9) : 0 });
-            segments.push({ from: op.start, to: op.end, fromY: op.topY ?? (wh * 0.8), toY: wh });
+            const sill = op.sillHeight ?? 0.9;
+            const topY = op.topY ?? (wh * 0.8);
+            const winH = topY - sill;
+            segments.push({ from: op.start, to: op.end, fromY: 0, toY: sill });
+            segments.push({ from: op.start, to: op.end, fromY: topY, toY: wh });
             // Glass
-            const winH = (op.topY ?? wh * 0.8) - (roomWindows.find(w => {
-              const s = w.position * wallLength - w.width / 2;
-              return Math.abs(s - op.start) < 0.01;
-            })?.sillHeight ?? 0.9);
-            const sill = roomWindows.find(w => {
-              const s = w.position * wallLength - w.width / 2;
-              return Math.abs(s - op.start) < 0.01;
-            })?.sillHeight ?? 0.9;
 
             const segLen = op.end - op.start;
             const segMid = (op.start + op.end) / 2;
