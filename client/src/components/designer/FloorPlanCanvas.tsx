@@ -953,8 +953,15 @@ export default function FloorPlanCanvas() {
       dispatch({ type: 'SELECT', id: null });
 
     } else if (state.tool === 'room') {
-      const sx = snapTo(world.x, state.gridSize, state.snapToGrid);
-      const sy = snapTo(world.y, state.gridSize, state.snapToGrid);
+      let sx = snapTo(world.x, state.gridSize, state.snapToGrid);
+      let sy = snapTo(world.y, state.gridSize, state.snapToGrid);
+      // Also snap start point to existing room edges
+      const DRAW_EDGE_SNAP = 0.35;
+      let bx = DRAW_EDGE_SNAP, by = DRAW_EDGE_SNAP;
+      for (const r of state.plan.rooms) {
+        for (const xv of [r.x, r.x + r.width]) { const d = Math.abs(sx - xv); if (d < bx) { bx = d; sx = xv; } }
+        for (const yv of [r.y, r.y + r.height]) { const d = Math.abs(sy - yv); if (d < by) { by = d; sy = yv; } }
+      }
       liveDrawRef.current = { startWorld: { x: sx, y: sy } };
       setDrawing({ startX: pos.x, startY: pos.y });
 
@@ -1180,8 +1187,17 @@ export default function FloorPlanCanvas() {
 
     if (drawing && liveDrawRef.current && state.tool === 'room') {
       const sw = liveDrawRef.current.startWorld;
-      const ex = snapTo(world.x, state.gridSize, state.snapToGrid);
-      const ey = snapTo(world.y, state.gridSize, state.snapToGrid);
+      let ex = snapTo(world.x, state.gridSize, state.snapToGrid);
+      let ey = snapTo(world.y, state.gridSize, state.snapToGrid);
+      // Snap end point to existing room edges and show guides
+      let snapX: number | null = null, snapY: number | null = null;
+      const DRAW_SNAP = 0.35;
+      let bx = DRAW_SNAP, by = DRAW_SNAP;
+      for (const r of state.plan.rooms) {
+        for (const xv of [r.x, r.x + r.width]) { const d = Math.abs(ex - xv); if (d < bx) { bx = d; ex = xv; snapX = xv; } }
+        for (const yv of [r.y, r.y + r.height]) { const d = Math.abs(ey - yv); if (d < by) { by = d; ey = yv; snapY = yv; } }
+      }
+      guideLinesRef.current = { vertX: snapX, horizY: snapY };
       const { x: cx, y: cy } = worldToCanvas(Math.min(sw.x, ex), Math.min(sw.y, ey));
       const cw = Math.abs(ex - sw.x) * scaleRef.current;
       const ch = Math.abs(ey - sw.y) * scaleRef.current;
@@ -1300,8 +1316,15 @@ export default function FloorPlanCanvas() {
       const pos = getPointerPos(canvas, e);
       const world = canvasToWorld(pos.x, pos.y);
       const sw = liveDrawRef.current.startWorld;
-      const ex = snapTo(world.x, state.gridSize, state.snapToGrid);
-      const ey = snapTo(world.y, state.gridSize, state.snapToGrid);
+      let ex = snapTo(world.x, state.gridSize, state.snapToGrid);
+      let ey = snapTo(world.y, state.gridSize, state.snapToGrid);
+      // Apply room-edge snapping consistent with live preview
+      const DRAW_SNAP2 = 0.35;
+      let bx2 = DRAW_SNAP2, by2 = DRAW_SNAP2;
+      for (const r of state.plan.rooms) {
+        for (const xv of [r.x, r.x + r.width]) { const d = Math.abs(ex - xv); if (d < bx2) { bx2 = d; ex = xv; } }
+        for (const yv of [r.y, r.y + r.height]) { const d = Math.abs(ey - yv); if (d < by2) { by2 = d; ey = yv; } }
+      }
       const rw = Math.abs(ex - sw.x);
       const rh = Math.abs(ey - sw.y);
 
@@ -1327,6 +1350,7 @@ export default function FloorPlanCanvas() {
       }
       setDrawing(null);
       liveDrawRef.current = null;
+      guideLinesRef.current = { vertX: null, horizY: null };
     }
   }, [isPanning, drawing, state, dispatch, canvasToWorld]);
 
