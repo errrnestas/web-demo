@@ -36,6 +36,7 @@ export default function SaveLoadPanel({ onClose }: { onClose: () => void }) {
       const parsed = JSON.parse(plan.planData);
       dispatch({ type: 'SET_PLAN', plan: parsed });
       onClose();
+      setTimeout(() => window.dispatchEvent(new CustomEvent('designer:fitview')), 50);
     } catch {
       alert('Nepavyko įkelti plano');
     }

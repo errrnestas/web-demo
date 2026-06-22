@@ -25,8 +25,11 @@ export default function MobileBottomSheet() {
   const { state, dispatch } = useDesigner();
   const [open, setOpen] = useState(false);
   const [furnitureCat, setFurnitureCat] = useState('Svetainė');
+  const [furnitureSearch, setFurnitureSearch] = useState('');
 
-  const filteredFurniture = FURNITURE_CATALOG.filter(f => f.category === furnitureCat);
+  const filteredFurniture = furnitureSearch.trim()
+    ? FURNITURE_CATALOG.filter(f => f.name.toLowerCase().includes(furnitureSearch.toLowerCase()))
+    : FURNITURE_CATALOG.filter(f => f.category === furnitureCat);
 
   return (
     <>
@@ -160,9 +163,18 @@ export default function MobileBottomSheet() {
           <div className="relative bg-slate-900 rounded-t-2xl border-t border-slate-700 max-h-[70vh] flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
               <h3 className="font-semibold text-white">Pasirinkite baldą</h3>
-              <button onClick={() => setOpen(false)} className="text-slate-400 text-xl">✕</button>
+              <button onClick={() => { setOpen(false); setFurnitureSearch(''); }} className="text-slate-400 text-xl">✕</button>
             </div>
-            <div className="flex gap-2 px-4 py-2 overflow-x-auto border-b border-slate-800">
+            <div className="px-4 py-2 border-b border-slate-800">
+              <input
+                type="text"
+                placeholder="Ieškoti baldų..."
+                value={furnitureSearch}
+                onChange={e => setFurnitureSearch(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            {!furnitureSearch && <div className="flex gap-2 px-4 py-2 overflow-x-auto border-b border-slate-800">
               {FURNITURE_CATEGORIES.map(cat => (
                 <button
                   key={cat}
@@ -174,7 +186,7 @@ export default function MobileBottomSheet() {
                   {cat}
                 </button>
               ))}
-            </div>
+            </div>}
             <div className="overflow-y-auto p-3 grid grid-cols-2 gap-2">
               {filteredFurniture.map(f => (
                 <button
