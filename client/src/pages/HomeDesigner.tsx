@@ -13,6 +13,16 @@ import { Link } from 'wouter';
 
 const Viewer3D = lazy(() => import('@/components/designer/Viewer3D'));
 
+const TOOL_LABELS: Record<string, string> = {
+  select: 'Pasirinkti',
+  room: 'Kambarys',
+  door: 'Durys',
+  window: 'Langas',
+  furniture: 'Baldai',
+  delete: 'Ištrinti',
+  measure: 'Matuoti',
+};
+
 export default function HomeDesigner() {
   const [state, dispatch] = useReducer(designerReducer, null, createInitialState);
   const [nameEdit, setNameEdit] = useState(false);
@@ -342,7 +352,7 @@ export default function HomeDesigner() {
         {/* Status bar */}
         <footer className="h-7 bg-slate-900 border-t border-slate-700 hidden lg:flex items-center px-4 gap-6 shrink-0">
           <span className="text-xs text-slate-500">
-            Įrankis: <span className="text-blue-400 font-medium">{state.tool}</span>
+            Įrankis: <span className="text-blue-400 font-medium">{TOOL_LABELS[state.tool] ?? state.tool}</span>
           </span>
           <span className="text-xs text-slate-500">
             Kambariai: <span className="text-slate-300">{state.plan.rooms.length}</span>
