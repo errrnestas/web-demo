@@ -17,6 +17,11 @@ const TOOL_BUTTONS: { tool: Tool; icon: string; label: string; shortcut: string 
 
 const FURNITURE_CATEGORIES = ['Miegamasis', 'Svetainė', 'Valgomasis', 'Virtuvė', 'Kabinetas', 'Vonios kambarys', 'Dekoracijos', 'Kita'];
 
+const ROOM_TYPE_ICONS: Record<string, string> = {
+  living: '🛋️', bedroom: '🛏️', kitchen: '🍳', bathroom: '🚿', dining: '🍽️',
+  office: '💻', hallway: '🚪', garage: '🚗', other: '📦',
+};
+
 export default function LeftPanel() {
   const { state, dispatch } = useDesigner();
   const [furnitureCat, setFurnitureCat] = useState('Svetainė');
@@ -122,6 +127,40 @@ export default function LeftPanel() {
           )}
         </div>
       </div>
+
+      {/* Room list — visible when not in furniture mode */}
+      {state.tool !== 'furniture' && state.plan.rooms.length > 0 && (
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          <div className="px-3 pt-3 pb-2 border-b border-slate-700 flex items-center justify-between">
+            <p className="text-xs text-slate-500 uppercase tracking-wider">Kambariai</p>
+            <span className="text-xs text-slate-600">{state.plan.rooms.length}</span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {state.plan.rooms.map(room => (
+              <button
+                key={room.id}
+                onClick={() => dispatch({ type: 'SELECT', id: room.id })}
+                className={cn(
+                  'w-full text-left px-2 py-1.5 rounded-lg text-xs transition-all border flex items-center gap-2',
+                  state.selectedId === room.id
+                    ? 'bg-blue-700/40 border-blue-600/70 text-white'
+                    : 'bg-slate-800/50 border-transparent text-slate-300 hover:bg-slate-700 hover:text-white hover:border-slate-600'
+                )}
+              >
+                <span className="text-sm leading-none shrink-0">{ROOM_TYPE_ICONS[room.type] ?? '📦'}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate leading-tight">{room.name}</div>
+                  <div className="text-slate-500 leading-tight">{(room.width * room.height).toFixed(1)} m²</div>
+                </div>
+                <span
+                  className="w-2 h-full min-h-[1.5rem] rounded-sm shrink-0 opacity-80"
+                  style={{ background: room.floorColor || '#c8a26b' }}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Furniture panel */}
       {state.tool === 'furniture' && (
