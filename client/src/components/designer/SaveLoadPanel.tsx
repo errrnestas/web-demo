@@ -45,8 +45,12 @@ export default function SaveLoadPanel({ onClose }: { onClose: () => void }) {
   const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm('Ištrinti šį planą?')) return;
-    await deleteMutation.mutateAsync(id);
-    if (overwriteId === id) setOverwriteId(null);
+    try {
+      await deleteMutation.mutateAsync(id);
+      if (overwriteId === id) setOverwriteId(null);
+    } catch {
+      alert('Nepavyko ištrinti plano');
+    }
   };
 
   const formatDate = (d: Date | null | string) => {

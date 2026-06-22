@@ -190,18 +190,30 @@ function RoomEditor({ room }: { room: Room }) {
       {state.plan.rooms.length > 1 && (
         <div className="flex gap-1.5">
           <button
-            onClick={() => state.plan.rooms.forEach(r => {
-              if (r.id !== room.id) dispatch({ type: 'UPDATE_ROOM', room: { ...r, floorMaterial: room.floorMaterial, floorColor: room.floorColor } });
-            })}
+            onClick={() => {
+              const others = state.plan.rooms.filter(r => r.id !== room.id);
+              others.forEach((r, i) => {
+                const updated = { ...r, floorMaterial: room.floorMaterial, floorColor: room.floorColor };
+                dispatch(i < others.length - 1
+                  ? { type: 'UPDATE_ROOM_LIVE', room: updated }
+                  : { type: 'UPDATE_ROOM', room: updated });
+              });
+            }}
             className="flex-1 py-1.5 text-xs rounded-lg border border-slate-700 text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
             title="Pritaikyti šio kambario grindų dangą visiems kambariams"
           >
             ↓ Grindys visiems
           </button>
           <button
-            onClick={() => state.plan.rooms.forEach(r => {
-              if (r.id !== room.id) dispatch({ type: 'UPDATE_ROOM', room: { ...r, wallMaterial: room.wallMaterial, wallColor: room.wallColor } });
-            })}
+            onClick={() => {
+              const others = state.plan.rooms.filter(r => r.id !== room.id);
+              others.forEach((r, i) => {
+                const updated = { ...r, wallMaterial: room.wallMaterial, wallColor: room.wallColor };
+                dispatch(i < others.length - 1
+                  ? { type: 'UPDATE_ROOM_LIVE', room: updated }
+                  : { type: 'UPDATE_ROOM', room: updated });
+              });
+            }}
             className="flex-1 py-1.5 text-xs rounded-lg border border-slate-700 text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
             title="Pritaikyti šio kambario sienų spalvą visiems kambariams"
           >
