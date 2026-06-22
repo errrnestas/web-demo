@@ -110,9 +110,11 @@ type Action =
   | { type: 'DELETE_ROOM'; id: string }
   | { type: 'ADD_DOOR'; door: Door }
   | { type: 'UPDATE_DOOR'; door: Door }
+  | { type: 'UPDATE_DOOR_LIVE'; door: Door }
   | { type: 'DELETE_DOOR'; id: string }
   | { type: 'ADD_WINDOW'; win: WindowElement }
   | { type: 'UPDATE_WINDOW'; win: WindowElement }
+  | { type: 'UPDATE_WINDOW_LIVE'; win: WindowElement }
   | { type: 'DELETE_WINDOW'; id: string }
   | { type: 'ADD_FURNITURE'; item: FurnitureItem }
   | { type: 'UPDATE_FURNITURE'; item: FurnitureItem }
@@ -170,12 +172,22 @@ function reducer(state: DesignerState, action: Action): DesignerState {
       return updatePlan(state, p => ({ ...p, doors: [...p.doors, action.door] }));
     case 'UPDATE_DOOR':
       return updatePlan(state, p => ({ ...p, doors: p.doors.map(d => d.id === action.door.id ? action.door : d) }));
+    case 'UPDATE_DOOR_LIVE': {
+      const newPlan = { ...state.plan, doors: state.plan.doors.map(d => d.id === action.door.id ? action.door : d), updatedAt: Date.now() };
+      localStorage.setItem('homedesigner-plan', JSON.stringify(newPlan));
+      return { ...state, plan: newPlan };
+    }
     case 'DELETE_DOOR':
       return updatePlan(state, p => ({ ...p, doors: p.doors.filter(d => d.id !== action.id) }));
     case 'ADD_WINDOW':
       return updatePlan(state, p => ({ ...p, windows: [...p.windows, action.win] }));
     case 'UPDATE_WINDOW':
       return updatePlan(state, p => ({ ...p, windows: p.windows.map(w => w.id === action.win.id ? action.win : w) }));
+    case 'UPDATE_WINDOW_LIVE': {
+      const newPlan = { ...state.plan, windows: state.plan.windows.map(w => w.id === action.win.id ? action.win : w), updatedAt: Date.now() };
+      localStorage.setItem('homedesigner-plan', JSON.stringify(newPlan));
+      return { ...state, plan: newPlan };
+    }
     case 'DELETE_WINDOW':
       return updatePlan(state, p => ({ ...p, windows: p.windows.filter(w => w.id !== action.id) }));
     case 'ADD_FURNITURE':

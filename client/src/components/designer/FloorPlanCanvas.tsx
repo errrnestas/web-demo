@@ -813,6 +813,35 @@ export default function FloorPlanCanvas() {
       ctx.restore();
     }
 
+    // Overlap highlights — red hatching on intersecting room areas
+    {
+      const EPS = 0.02;
+      for (let i = 0; i < plan.rooms.length; i++) {
+        for (let j = i + 1; j < plan.rooms.length; j++) {
+          const a = plan.rooms[i], b = plan.rooms[j];
+          const ixMin = Math.max(a.x, b.x), ixMax = Math.min(a.x + a.width, b.x + b.width);
+          const iyMin = Math.max(a.y, b.y), iyMax = Math.min(a.y + a.height, b.y + b.height);
+          if (ixMax - ixMin > EPS && iyMax - iyMin > EPS) {
+            const { x: ox, y: oy } = worldToCanvas(ixMin, iyMin);
+            const ow = (ixMax - ixMin) * scaleRef.current;
+            const oh = (iyMax - iyMin) * scaleRef.current;
+            ctx.fillStyle = 'rgba(239,68,68,0.25)';
+            ctx.fillRect(ox, oy, ow, oh);
+            ctx.save();
+            ctx.beginPath(); ctx.rect(ox, oy, ow, oh); ctx.clip();
+            ctx.strokeStyle = 'rgba(239,68,68,0.5)';
+            ctx.lineWidth = 1.5;
+            const stride = 10;
+            const diag = Math.max(ow, oh) * 2;
+            for (let d = -diag; d < diag * 2; d += stride) {
+              ctx.beginPath(); ctx.moveTo(ox + d, oy); ctx.lineTo(ox + d + oh, oy + oh); ctx.stroke();
+            }
+            ctx.restore();
+          }
+        }
+      }
+    }
+
     // Alignment guides (shown during room drag when an edge snaps to another room)
     const { vertX, horizY } = guideLinesRef.current;
     if (vertX !== null) {
@@ -1203,7 +1232,7 @@ export default function FloorPlanCanvas() {
         } else {
           pos = (world.y - r.y - d.width / 2) / Math.max(0.1, r.height - d.width);
         }
-        dispatch({ type: 'UPDATE_DOOR', door: { ...d, position: Math.max(0, Math.min(1, pos)) } });
+        dispatch({ type: 'UPDATE_DOOR_LIVE', door: { ...d, position: Math.max(0, Math.min(1, pos)) } });
       }
     }
 
@@ -1217,7 +1246,7 @@ export default function FloorPlanCanvas() {
         } else {
           pos = (world.y - r.y) / r.height;
         }
-        dispatch({ type: 'UPDATE_WINDOW', win: { ...w, position: Math.max(0.05, Math.min(0.95, pos)) } });
+        dispatch({ type: 'UPDATE_WINDOW_LIVE', win: { ...w, position: Math.max(0.05, Math.min(0.95, pos)) } });
       }
     }
 
@@ -1553,6 +1582,12 @@ export default function FloorPlanCanvas() {
       } else if (dragging.type === 'furniture') {
         const item = state.plan.furniture.find(f => f.id === dragging.id);
         if (item) dispatch({ type: 'UPDATE_FURNITURE', item });
+      } else if (dragging.type === 'door') {
+        const d = state.plan.doors.find(dd => dd.id === dragging.id);
+        if (d) dispatch({ type: 'UPDATE_DOOR', door: d });
+      } else if (dragging.type === 'window') {
+        const w = state.plan.windows.find(ww => ww.id === dragging.id);
+        if (w) dispatch({ type: 'UPDATE_WINDOW', win: w });
       }
     }
     setDragging(null);
@@ -1938,6 +1973,12 @@ export default function FloorPlanCanvas() {
             } else if (dragging.type === 'furniture') {
               const item = state.plan.furniture.find(f => f.id === dragging.id);
               if (item) dispatch({ type: 'UPDATE_FURNITURE', item });
+            } else if (dragging.type === 'door') {
+              const d = state.plan.doors.find(dd => dd.id === dragging.id);
+              if (d) dispatch({ type: 'UPDATE_DOOR', door: d });
+            } else if (dragging.type === 'window') {
+              const w = state.plan.windows.find(ww => ww.id === dragging.id);
+              if (w) dispatch({ type: 'UPDATE_WINDOW', win: w });
             }
           }
           setDragging(null); setIsPanning(false); guideLinesRef.current = { vertX: null, horizY: null }; if (tooltipRef.current) tooltipRef.current.style.display = 'none';
