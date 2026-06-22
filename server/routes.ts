@@ -11,47 +11,55 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // Projects
-  app.get(api.projects.list.path, async (req, res) => {
-    const projects = await storage.getProjects();
-    res.json(projects);
+  app.get(api.projects.list.path, async (_req, res, next) => {
+    try {
+      const projects = await storage.getProjects();
+      res.json(projects);
+    } catch (err) { next(err); }
   });
 
-  app.get(api.projects.get.path, async (req, res) => {
-    const project = await storage.getProject(Number(req.params.id));
-    if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
-    }
-    res.json(project);
+  app.get(api.projects.get.path, async (req, res, next) => {
+    try {
+      const project = await storage.getProject(Number(req.params.id));
+      if (!project) return res.status(404).json({ message: 'Project not found' });
+      res.json(project);
+    } catch (err) { next(err); }
   });
 
   // Gallery
-  app.get(api.gallery.listByProject.path, async (req, res) => {
-    const photos = await storage.getGalleryByProject(Number(req.params.projectId));
-    res.json(photos);
+  app.get(api.gallery.listByProject.path, async (req, res, next) => {
+    try {
+      const photos = await storage.getGalleryByProject(Number(req.params.projectId));
+      res.json(photos);
+    } catch (err) { next(err); }
   });
 
   // Guides
-  app.get(api.guides.list.path, async (req, res) => {
-    const guides = await storage.getGuides();
-    res.json(guides);
+  app.get(api.guides.list.path, async (_req, res, next) => {
+    try {
+      const guides = await storage.getGuides();
+      res.json(guides);
+    } catch (err) { next(err); }
   });
 
-  app.get(api.guides.get.path, async (req, res) => {
-    const guide = await storage.getGuide(Number(req.params.id));
-    if (!guide) {
-      return res.status(404).json({ message: 'Guide not found' });
-    }
-    res.json(guide);
+  app.get(api.guides.get.path, async (req, res, next) => {
+    try {
+      const guide = await storage.getGuide(Number(req.params.id));
+      if (!guide) return res.status(404).json({ message: 'Guide not found' });
+      res.json(guide);
+    } catch (err) { next(err); }
   });
 
   // Service Plans
-  app.get(api.servicePlans.list.path, async (req, res) => {
-    const plans = await storage.getServicePlans();
-    res.json(plans);
+  app.get(api.servicePlans.list.path, async (_req, res, next) => {
+    try {
+      const plans = await storage.getServicePlans();
+      res.json(plans);
+    } catch (err) { next(err); }
   });
 
   // Inquiries
-  app.post(api.inquiries.create.path, async (req, res) => {
+  app.post(api.inquiries.create.path, async (req, res, next) => {
     try {
       const input = api.inquiries.create.input.parse(req.body);
       const inquiry = await storage.createInquiry(input);
@@ -63,23 +71,27 @@ export async function registerRoutes(
           field: err.errors[0].path.join('.'),
         });
       }
-      throw err;
+      next(err);
     }
   });
 
   // Design Plans CRUD
-  app.get('/api/design-plans', async (_req, res) => {
-    const plans = await storage.getDesignPlans();
-    res.json(plans);
+  app.get('/api/design-plans', async (_req, res, next) => {
+    try {
+      const plans = await storage.getDesignPlans();
+      res.json(plans);
+    } catch (err) { next(err); }
   });
 
-  app.get('/api/design-plans/:id', async (req, res) => {
-    const plan = await storage.getDesignPlan(Number(req.params.id));
-    if (!plan) return res.status(404).json({ message: 'Plan not found' });
-    res.json(plan);
+  app.get('/api/design-plans/:id', async (req, res, next) => {
+    try {
+      const plan = await storage.getDesignPlan(Number(req.params.id));
+      if (!plan) return res.status(404).json({ message: 'Plan not found' });
+      res.json(plan);
+    } catch (err) { next(err); }
   });
 
-  app.post('/api/design-plans', async (req, res) => {
+  app.post('/api/design-plans', async (req, res, next) => {
     try {
       const input = insertDesignPlanSchema.parse(req.body);
       const plan = await storage.createDesignPlan(input);
@@ -88,11 +100,11 @@ export async function registerRoutes(
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
-      throw err;
+      next(err);
     }
   });
 
-  app.put('/api/design-plans/:id', async (req, res) => {
+  app.put('/api/design-plans/:id', async (req, res, next) => {
     try {
       const patch = insertDesignPlanSchema.partial().parse(req.body);
       const plan = await storage.updateDesignPlan(Number(req.params.id), patch);
@@ -102,14 +114,16 @@ export async function registerRoutes(
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
-      throw err;
+      next(err);
     }
   });
 
-  app.delete('/api/design-plans/:id', async (req, res) => {
-    const ok = await storage.deleteDesignPlan(Number(req.params.id));
-    if (!ok) return res.status(404).json({ message: 'Plan not found' });
-    res.status(204).end();
+  app.delete('/api/design-plans/:id', async (req, res, next) => {
+    try {
+      const ok = await storage.deleteDesignPlan(Number(req.params.id));
+      if (!ok) return res.status(404).json({ message: 'Plan not found' });
+      res.status(204).end();
+    } catch (err) { next(err); }
   });
 
   await seedDatabase();
