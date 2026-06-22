@@ -1842,18 +1842,57 @@ export default function FloorPlanCanvas() {
             const canvas = canvasRef.current;
             if (!canvas) return;
             const dataUrl = canvas.toDataURL('image/png');
+            const plan = state.plan;
+            const totalArea = plan.rooms.reduce((s, r) => s + r.width * r.height, 0);
+            const date = new Date().toLocaleDateString('lt-LT', { year: 'numeric', month: 'long', day: 'numeric' });
+            const roomRows = plan.rooms.map(r =>
+              `<tr><td>${r.name}</td><td>${(r.width * r.height).toFixed(2)} m²</td><td>${r.width.toFixed(2)} × ${r.height.toFixed(2)} m</td></tr>`
+            ).join('');
             const win = window.open('', '_blank');
             if (!win) return;
-            win.document.write(`<html><head><title>${state.plan.name} - Planas</title><style>
-              body{margin:0;background:#1a1a2e;display:flex;align-items:center;justify-content:center;min-height:100vh;}
-              img{max-width:100%;max-height:100vh;object-fit:contain;}
-              @media print{body{background:#fff;}img{max-width:100%;}}
-            </style></head><body><img src="${dataUrl}" /></body></html>`);
+            win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${plan.name}</title><style>
+              *{box-sizing:border-box;margin:0;padding:0;}
+              body{font-family:Arial,sans-serif;background:#fff;color:#1a1a2a;padding:20mm;}
+              .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1e293b;padding-bottom:12px;margin-bottom:16px;}
+              .title{font-size:22px;font-weight:bold;color:#1e293b;}.subtitle{font-size:13px;color:#64748b;margin-top:4px;}
+              .meta{text-align:right;font-size:11px;color:#64748b;line-height:1.8;}
+              .plan-img{width:100%;max-height:180mm;object-fit:contain;border:1px solid #e2e8f0;border-radius:4px;margin-bottom:16px;background:#0f172a;}
+              .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+              .stat-box{border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center;}
+              .stat-val{font-size:20px;font-weight:bold;color:#2563eb;}.stat-label{font-size:10px;color:#64748b;margin-top:2px;}
+              table{width:100%;border-collapse:collapse;font-size:12px;}
+              th{background:#f1f5f9;text-align:left;padding:6px 10px;border:1px solid #e2e8f0;font-size:11px;text-transform:uppercase;color:#64748b;}
+              td{padding:6px 10px;border:1px solid #e2e8f0;}
+              tr:nth-child(even) td{background:#f8fafc;}
+              .footer{margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;display:flex;justify-content:space-between;}
+              @media print{body{padding:10mm;}.no-print{display:none;}}
+            </style></head><body>
+            <div class="header">
+              <div><div class="title">${plan.name}</div><div class="subtitle">Patalpų planas · Aukštų skaičius: 1</div></div>
+              <div class="meta">
+                <div>Data: ${date}</div>
+                <div>Kambariai: ${plan.rooms.length} · Plotas: ${totalArea.toFixed(1)} m²</div>
+                <div>Durys: ${plan.doors.length} · Langai: ${plan.windows.length}</div>
+              </div>
+            </div>
+            <img class="plan-img" src="${dataUrl}" alt="Patalpų planas" />
+            <div class="stats">
+              <div class="stat-box"><div class="stat-val">${totalArea.toFixed(1)}</div><div class="stat-label">Bendras plotas (m²)</div></div>
+              <div class="stat-box"><div class="stat-val">${plan.rooms.length}</div><div class="stat-label">Kambariai</div></div>
+              <div class="stat-box"><div class="stat-val">${plan.doors.length}</div><div class="stat-label">Durys</div></div>
+              <div class="stat-box"><div class="stat-val">${plan.windows.length}</div><div class="stat-label">Langai</div></div>
+            </div>
+            <table>
+              <thead><tr><th>Kambarys</th><th>Plotas</th><th>Matmenys</th></tr></thead>
+              <tbody>${roomRows}</tbody>
+            </table>
+            <div class="footer"><span>Sukurta naudojant Namų dizainerį</span><span>${plan.name} · ${date}</span></div>
+            </body></html>`);
             win.document.close();
-            setTimeout(() => win.print(), 500);
+            setTimeout(() => win.print(), 600);
           }}
           className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 backdrop-blur transition-all"
-          title="Spausdinti"
+          title="Spausdinti su plano informacija"
         >
           🖨️ Spausd.
         </button>

@@ -143,6 +143,7 @@ function updatePlan(state: DesignerState, updater: (plan: FloorPlan) => FloorPla
 function reducer(state: DesignerState, action: Action): DesignerState {
   switch (action.type) {
     case 'SET_PLAN':
+      localStorage.setItem('homedesigner-plan', JSON.stringify(action.plan));
       return { ...state, plan: action.plan, history: [action.plan], historyIndex: 0 };
     case 'ADD_ROOM':
       return updatePlan(state, p => ({ ...p, rooms: [...p.rooms, action.room] }));
