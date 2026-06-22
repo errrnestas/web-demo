@@ -813,35 +813,6 @@ export default function FloorPlanCanvas() {
       ctx.restore();
     }
 
-    // Overlap highlights — red hatching on intersecting room areas
-    {
-      const EPS = 0.02;
-      for (let i = 0; i < plan.rooms.length; i++) {
-        for (let j = i + 1; j < plan.rooms.length; j++) {
-          const a = plan.rooms[i], b = plan.rooms[j];
-          const ixMin = Math.max(a.x, b.x), ixMax = Math.min(a.x + a.width, b.x + b.width);
-          const iyMin = Math.max(a.y, b.y), iyMax = Math.min(a.y + a.height, b.y + b.height);
-          if (ixMax - ixMin > EPS && iyMax - iyMin > EPS) {
-            const { x: ox, y: oy } = worldToCanvas(ixMin, iyMin);
-            const ow = (ixMax - ixMin) * scaleRef.current;
-            const oh = (iyMax - iyMin) * scaleRef.current;
-            ctx.fillStyle = 'rgba(239,68,68,0.25)';
-            ctx.fillRect(ox, oy, ow, oh);
-            ctx.save();
-            ctx.beginPath(); ctx.rect(ox, oy, ow, oh); ctx.clip();
-            ctx.strokeStyle = 'rgba(239,68,68,0.5)';
-            ctx.lineWidth = 1.5;
-            const stride = 10;
-            const diag = Math.max(ow, oh) * 2;
-            for (let d = -diag; d < diag * 2; d += stride) {
-              ctx.beginPath(); ctx.moveTo(ox + d, oy); ctx.lineTo(ox + d + oh, oy + oh); ctx.stroke();
-            }
-            ctx.restore();
-          }
-        }
-      }
-    }
-
     // Alignment guides (shown during room drag when an edge snaps to another room)
     const { vertX, horizY } = guideLinesRef.current;
     if (vertX !== null) {
@@ -1359,6 +1330,7 @@ export default function FloorPlanCanvas() {
     if (state.tool === 'furniture' && state.pendingFurnitureType && !dragging) {
       const catalog = FURNITURE_CATALOG.find(f => f.type === state.pendingFurnitureType);
       if (catalog) {
+        drawCanvas();
         let px = snapTo(world.x - catalog.width / 2, state.gridSize, state.snapToGrid);
         let py = snapTo(world.y - catalog.depth / 2, state.gridSize, state.snapToGrid);
         // Wall snap for preview
@@ -1966,6 +1938,11 @@ export default function FloorPlanCanvas() {
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleContextMenu}
         onMouseLeave={() => {
+          if (resizing) {
+            const room = state.plan.rooms.find(r => r.id === resizing.id);
+            if (room) dispatch({ type: 'UPDATE_ROOM', room });
+            setResizing(null);
+          }
           if (dragging) {
             if (dragging.type === 'room') {
               const room = state.plan.rooms.find(r => r.id === dragging.id);

@@ -8,7 +8,6 @@ import type { Room, Door, WindowElement, FurnitureItem, FloorPlan } from '@/type
 import { WALL_MATERIAL_COLORS, FLOOR_MATERIAL_COLORS } from '@/types/designer';
 
 const WALL_THICKNESS = 0.18;
-const WALL_HEIGHT = 2.6;
 
 function createFloorTexture(material: string, baseColor: string): THREE.CanvasTexture {
   const size = 512;
