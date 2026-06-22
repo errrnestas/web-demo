@@ -1308,7 +1308,9 @@ export default function Viewer3D() {
     const link = document.createElement('a');
     link.download = '3d-view.png';
     link.href = canvas.toDataURL('image/png');
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   }, []);
 
   return (

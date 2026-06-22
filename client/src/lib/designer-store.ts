@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext } from 'react';
 import type { FloorPlan, Room, Door, WindowElement, FurnitureItem, Tool } from '@/types/designer';
 
 const DEFAULT_PLAN: FloorPlan = {

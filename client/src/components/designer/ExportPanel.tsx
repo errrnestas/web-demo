@@ -130,7 +130,9 @@ export function ExportButton() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${state.plan.name.replace(/\s+/g, '_')}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [state.plan]);
 
@@ -141,8 +143,11 @@ export function ExportButton() {
     const w = window.open(url, '_blank');
     if (w) {
       w.onload = () => { w.print(); };
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } else {
+      URL.revokeObjectURL(url);
+      alert('Iššokančiųjų langų blokatorius užblokavo ataskaitą. Leiskite iššokančiuosius langus ir bandykite dar kartą.');
     }
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }, [state.plan]);
 
   return (

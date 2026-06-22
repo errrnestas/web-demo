@@ -116,7 +116,9 @@ function exportPlanToSVG(plan: FloorPlan): void {
   const a = document.createElement('a');
   a.href = url;
   a.download = `${plan.name.replace(/\s+/g, '_')}-planas.svg`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
@@ -2055,7 +2057,9 @@ export default function FloorPlanCanvas() {
             const link = document.createElement('a');
             link.download = `${state.plan.name.replace(/\s+/g, '_')}-planas.png`;
             link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
           }}
           className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 backdrop-blur transition-all"
           title="Eksportuoti kaip PNG"
