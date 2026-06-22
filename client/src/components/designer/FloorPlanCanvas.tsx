@@ -141,6 +141,7 @@ export default function FloorPlanCanvas() {
   const guideLinesRef = useRef<{ vertX: number | null; horizY: number | null }>({ vertX: null, horizY: null });
   const pinchRef = useRef<{ dist: number; midX: number; midY: number } | null>(null);
   const [measureStart, setMeasureStart] = useState<{ x: number; y: number } | null>(null);
+  const [measureResult, setMeasureResult] = useState<{ a: { x: number; y: number }; b: { x: number; y: number } } | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renamingPos, setRenamingPos] = useState<{ x: number; y: number } | null>(null);
   const [renamingVal, setRenamingVal] = useState('');
@@ -830,6 +831,41 @@ export default function FloorPlanCanvas() {
       ctx.setLineDash([]);
     }
 
+    // Measure tool — draw completed measurement result
+    if (measureResult) {
+      const { x: ax, y: ay } = worldToCanvas(measureResult.a.x, measureResult.a.y);
+      const { x: bx, y: by } = worldToCanvas(measureResult.b.x, measureResult.b.y);
+      const dist = Math.hypot(measureResult.b.x - measureResult.a.x, measureResult.b.y - measureResult.a.y);
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      ctx.setLineDash([]);
+      // endpoint dots
+      ctx.fillStyle = '#f59e0b';
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2;
+      for (const [ex, ey] of [[ax, ay], [bx, by]] as [number, number][]) {
+        ctx.beginPath(); ctx.arc(ex, ey, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      // label
+      const lx = (ax + bx) / 2, ly = (ay + by) / 2;
+      const angle = Math.atan2(by - ay, bx - ax);
+      const label = dist < 1 ? `${(dist * 100).toFixed(0)} cm` : `${dist.toFixed(2)} m`;
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(Math.abs(angle) > Math.PI / 2 ? angle + Math.PI : angle);
+      ctx.fillStyle = '#f59e0b';
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 4;
+      ctx.font = 'bold 13px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.strokeText(label, 0, -6);
+      ctx.fillText(label, 0, -6);
+      ctx.restore();
+    }
+
     // Measure tool — draw start point marker
     if (measureStart) {
       const { x: mx, y: my } = worldToCanvas(measureStart.x, measureStart.y);
@@ -901,7 +937,7 @@ export default function FloorPlanCanvas() {
       }
     }
 
-  }, [state, panOffset, drawing, worldToCanvas, canvasToWorld, measureStart]);
+  }, [state, panOffset, drawing, worldToCanvas, canvasToWorld, measureStart, measureResult]);
 
   useEffect(() => {
     drawCanvas();
@@ -1110,7 +1146,9 @@ export default function FloorPlanCanvas() {
       const sy = snapTo(world.y, state.gridSize, state.snapToGrid);
       if (!measureStart) {
         setMeasureStart({ x: sx, y: sy });
+        setMeasureResult(null);
       } else {
+        setMeasureResult({ a: measureStart, b: { x: sx, y: sy } });
         setMeasureStart(null);
       }
     }
@@ -1606,6 +1644,7 @@ export default function FloorPlanCanvas() {
       setDrawing(null);
       liveDrawRef.current = null;
       setMeasureStart(null);
+      setMeasureResult(null);
       setRenamingId(null);
       setRenamingPos(null);
       setCtxMenu(null);
@@ -2086,7 +2125,7 @@ export default function FloorPlanCanvas() {
         {state.tool === 'select' && 'Spustelėkite pasirinkti · Dešinys – meniu · Dbl-click pervadinti · Scroll priartinti'}
         {state.tool === 'delete' && 'Spustelėkite elementą, kad ištrintumėte'}
         {state.tool === 'furniture' && (state.pendingFurnitureType ? 'Spustelėkite, kad padėtumėte baldą' : 'Pasirinkite baldą kairėje')}
-        {state.tool === 'measure' && (measureStart ? 'Spustelėkite antrą tašką · Dar kartą – atstatyti' : 'Spustelėkite pirmą tašką, nuo kurio matuoti')}
+        {state.tool === 'measure' && (measureStart ? 'Spustelėkite antrą tašką · Esc – atšaukti' : measureResult ? 'Matavimas išsaugotas · Spustelėkite naują tašką · Esc – išvalyti' : 'Spustelėkite pirmą tašką, nuo kurio matuoti')}
       </div>
     </div>
   );

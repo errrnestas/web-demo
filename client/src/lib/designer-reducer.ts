@@ -5,6 +5,7 @@ type Action =
   | { type: 'SET_PLAN'; plan: FloorPlan }
   | { type: 'ADD_ROOM'; room: any }
   | { type: 'UPDATE_ROOM'; room: any }
+  | { type: 'UPDATE_ROOM_LIVE'; room: any }
   | { type: 'DELETE_ROOM'; id: string }
   | { type: 'ADD_DOOR'; door: any }
   | { type: 'UPDATE_DOOR'; door: any }
@@ -14,6 +15,7 @@ type Action =
   | { type: 'DELETE_WINDOW'; id: string }
   | { type: 'ADD_FURNITURE'; item: any }
   | { type: 'UPDATE_FURNITURE'; item: any }
+  | { type: 'UPDATE_FURNITURE_LIVE'; item: any }
   | { type: 'DELETE_FURNITURE'; id: string }
   | { type: 'SELECT'; id: string | null }
   | { type: 'SET_TOOL'; tool: any }
@@ -25,7 +27,8 @@ type Action =
   | { type: 'TOGGLE_GRID' }
   | { type: 'TOGGLE_SNAP' }
   | { type: 'SET_GRID_SIZE'; size: number }
-  | { type: 'SET_CAMERA_MODE'; mode: 'orbit' | 'firstperson' };
+  | { type: 'SET_CAMERA_MODE'; mode: 'orbit' | 'firstperson' }
+  | { type: 'SET_WALL_HEIGHT'; height: number };
 
 function savePlanToHistory(state: DesignerState, newPlan: FloorPlan) {
   const newHistory = state.history.slice(0, state.historyIndex + 1);
@@ -48,6 +51,11 @@ export function designerReducer(state: DesignerState, action: Action): DesignerS
       return updatePlan(state, p => ({ ...p, rooms: [...p.rooms, action.room] }));
     case 'UPDATE_ROOM':
       return updatePlan(state, p => ({ ...p, rooms: p.rooms.map(r => r.id === action.room.id ? action.room : r) }));
+    case 'UPDATE_ROOM_LIVE': {
+      const newPlan = { ...state.plan, rooms: state.plan.rooms.map(r => r.id === action.room.id ? action.room : r), updatedAt: Date.now() };
+      try { localStorage.setItem('homedesigner-plan', JSON.stringify(newPlan)); } catch {}
+      return { ...state, plan: newPlan };
+    }
     case 'DELETE_ROOM':
       return updatePlan(state, p => ({
         ...p,
@@ -71,6 +79,11 @@ export function designerReducer(state: DesignerState, action: Action): DesignerS
       return updatePlan(state, p => ({ ...p, furniture: [...p.furniture, action.item] }));
     case 'UPDATE_FURNITURE':
       return updatePlan(state, p => ({ ...p, furniture: p.furniture.map(f => f.id === action.item.id ? action.item : f) }));
+    case 'UPDATE_FURNITURE_LIVE': {
+      const newPlan = { ...state.plan, furniture: state.plan.furniture.map(f => f.id === action.item.id ? action.item : f), updatedAt: Date.now() };
+      try { localStorage.setItem('homedesigner-plan', JSON.stringify(newPlan)); } catch {}
+      return { ...state, plan: newPlan };
+    }
     case 'DELETE_FURNITURE':
       return updatePlan(state, p => ({ ...p, furniture: p.furniture.filter(f => f.id !== action.id) }));
     case 'SELECT':
@@ -105,6 +118,8 @@ export function designerReducer(state: DesignerState, action: Action): DesignerS
       return { ...state, gridSize: action.size };
     case 'SET_CAMERA_MODE':
       return { ...state, cameraMode: action.mode };
+    case 'SET_WALL_HEIGHT':
+      return updatePlan(state, p => ({ ...p, wallHeight: action.height }));
     default:
       return state;
   }
