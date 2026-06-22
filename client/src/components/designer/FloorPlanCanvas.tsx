@@ -319,13 +319,15 @@ export default function FloorPlanCanvas() {
         { side: 'left' as const,   x1: x,     y1: y,     x2: x,     y2: y + h },
       ];
       for (const { side, x1, y1, x2, y2 } of wallSides) {
-        if (!isSelected && shouldSkipWallSide(room, side)) continue;
-        ctx.strokeStyle = wallColor;
+        const isShared = !isSelected && shouldSkipWallSide(room, side);
+        ctx.strokeStyle = isShared ? '#475569' : wallColor;
+        ctx.lineWidth = isShared ? Math.max(1.5, wallPx * 0.45) : wallPx;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.stroke();
       }
+      ctx.lineWidth = wallPx;
 
       // Selection glow
       if (isSelected) {
@@ -1222,26 +1224,28 @@ export default function FloorPlanCanvas() {
           // Snap furniture edges to room walls
           const WALL_SNAP = 0.22;
           let bestX = WALL_SNAP, bestY = WALL_SNAP;
+          let snapVertX: number | null = null, snapHorizY: number | null = null;
           for (const room of state.plan.rooms) {
             const xEdges = [
-              { snap: room.x,                             dist: Math.abs(sx - room.x) },
-              { snap: room.x + room.width - item.width,   dist: Math.abs(sx + item.width - (room.x + room.width)) },
-              { snap: room.x - item.width,                dist: Math.abs(sx + item.width - room.x) },
-              { snap: room.x + room.width,                dist: Math.abs(sx - (room.x + room.width)) },
+              { snap: room.x,                             dist: Math.abs(sx - room.x),                              world: room.x },
+              { snap: room.x + room.width - item.width,   dist: Math.abs(sx + item.width - (room.x + room.width)),  world: room.x + room.width },
+              { snap: room.x - item.width,                dist: Math.abs(sx + item.width - room.x),                 world: room.x },
+              { snap: room.x + room.width,                dist: Math.abs(sx - (room.x + room.width)),               world: room.x + room.width },
             ];
             for (const e of xEdges) {
-              if (e.dist < bestX) { bestX = e.dist; sx = e.snap; }
+              if (e.dist < bestX) { bestX = e.dist; sx = e.snap; snapVertX = e.world; }
             }
             const yEdges = [
-              { snap: room.y,                               dist: Math.abs(sy - room.y) },
-              { snap: room.y + room.height - item.depth,   dist: Math.abs(sy + item.depth - (room.y + room.height)) },
-              { snap: room.y - item.depth,                 dist: Math.abs(sy + item.depth - room.y) },
-              { snap: room.y + room.height,                dist: Math.abs(sy - (room.y + room.height)) },
+              { snap: room.y,                              dist: Math.abs(sy - room.y),                              world: room.y },
+              { snap: room.y + room.height - item.depth,  dist: Math.abs(sy + item.depth - (room.y + room.height)), world: room.y + room.height },
+              { snap: room.y - item.depth,                dist: Math.abs(sy + item.depth - room.y),                 world: room.y },
+              { snap: room.y + room.height,               dist: Math.abs(sy - (room.y + room.height)),              world: room.y + room.height },
             ];
             for (const e of yEdges) {
-              if (e.dist < bestY) { bestY = e.dist; sy = e.snap; }
+              if (e.dist < bestY) { bestY = e.dist; sy = e.snap; snapHorizY = e.world; }
             }
           }
+          guideLinesRef.current = { vertX: snapVertX, horizY: snapHorizY };
           dispatch({ type: 'UPDATE_FURNITURE', item: { ...item, x: sx, y: sy } });
         }
       }

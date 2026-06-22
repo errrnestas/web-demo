@@ -21,6 +21,11 @@ const FURNITURE_COSTS: Record<string, number> = {
   'dining-table': 700, 'chair': 150, 'coffee-table': 350, 'desk': 400,
   'wardrobe': 900, 'bookshelf': 300, 'kitchen-counter': 2500, 'sink': 250,
   'bathtub': 800, 'toilet': 350, 'shower': 600, 'tv-stand': 400, 'plant': 45,
+  'stove': 900, 'refrigerator': 700, 'washing-machine': 600, 'office-chair': 350,
+  'nightstand': 200, 'dresser': 500, 'rug': 280, 'fireplace': 3500,
+  'staircase': 4000, 'column': 800,
+  'bathroom-vanity': 650, 'kitchen-island': 1800, 'floor-lamp': 180,
+  'dishwasher': 550, 'side-table': 180, 'bench': 350, 'radiator': 280,
 };
 
 export default function CostEstimator() {
