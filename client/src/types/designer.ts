@@ -44,7 +44,9 @@ export type FurnitureType =
   | 'bathtub' | 'toilet' | 'shower' | 'tv-stand' | 'plant'
   | 'stove' | 'refrigerator' | 'washing-machine' | 'office-chair'
   | 'nightstand' | 'dresser' | 'rug' | 'fireplace'
-  | 'staircase' | 'column';
+  | 'staircase' | 'column'
+  | 'bathroom-vanity' | 'kitchen-island' | 'floor-lamp' | 'dishwasher'
+  | 'side-table' | 'bench' | 'radiator';
 
 export interface FurnitureItem {
   id: string;
@@ -148,4 +150,11 @@ export const FURNITURE_CATALOG: Array<{
   { type: 'dresser', name: 'Komoda', width: 1.2, depth: 0.5, color: '#8b6914', category: 'Miegamasis' },
   { type: 'staircase', name: 'Laiptai', width: 1.0, depth: 2.5, color: '#b0956a', category: 'Kita' },
   { type: 'column', name: 'Kolona', width: 0.3, depth: 0.3, color: '#9e9e9e', category: 'Kita' },
+  { type: 'bathroom-vanity', name: 'Vonios spintelė', width: 0.8, depth: 0.5, color: '#e0e0e0', category: 'Vonios kambarys' },
+  { type: 'kitchen-island', name: 'Virtuvės sala', width: 1.4, depth: 0.9, color: '#d4d4d4', category: 'Virtuvė' },
+  { type: 'floor-lamp', name: 'Grindų lempa', width: 0.35, depth: 0.35, color: '#c8c8a0', category: 'Dekoracijos' },
+  { type: 'dishwasher', name: 'Indaplovė', width: 0.6, depth: 0.6, color: '#d8d8d8', category: 'Virtuvė' },
+  { type: 'side-table', name: 'Šoninis staliukas', width: 0.55, depth: 0.55, color: '#8b6914', category: 'Svetainė' },
+  { type: 'bench', name: 'Suoliukas', width: 1.2, depth: 0.45, color: '#8b6914', category: 'Miegamasis' },
+  { type: 'radiator', name: 'Radiatorius', width: 1.0, depth: 0.12, color: '#e8e8e8', category: 'Kita' },
 ];

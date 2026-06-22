@@ -1406,7 +1406,7 @@ export default function FloorPlanCanvas() {
             floorMaterial: 'wood',
             wallMaterial: 'white',
             wallColor: '#f8f8f8',
-            floorColor: '#c8a26b',
+            floorColor: ROOM_COLORS[type],
           },
         });
       }
