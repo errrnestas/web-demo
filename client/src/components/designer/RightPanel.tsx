@@ -541,7 +541,7 @@ export default function RightPanel({ embedded = false }: { embedded?: boolean })
                   value={state.plan.wallHeight}
                   onChange={e => {
                     const h = parseFloat(e.target.value);
-                    dispatch({ type: 'SET_PLAN', plan: { ...state.plan, wallHeight: h } });
+                    dispatch({ type: 'SET_WALL_HEIGHT', height: h });
                   }}
                   className="flex-1 h-2 accent-blue-500"
                 />

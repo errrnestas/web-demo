@@ -1444,11 +1444,18 @@ export default function FloorPlanCanvas() {
       if (rw >= 0.5 && rh >= 0.5) {
         const types: Room['type'][] = ['living', 'bedroom', 'kitchen', 'bathroom', 'dining', 'office', 'hallway', 'other'];
         const type = types[state.plan.rooms.length % types.length];
+        const TYPE_NAMES: Record<Room['type'], string> = {
+          living: 'Svetainė', bedroom: 'Miegamasis', kitchen: 'Virtuvė',
+          bathroom: 'Vonios kambarys', dining: 'Valgomasis', office: 'Kabinetas',
+          hallway: 'Koridorius', garage: 'Garažas', other: 'Kambarys',
+        };
+        const sameTypeCount = state.plan.rooms.filter(r => r.type === type).length + 1;
+        const roomName = sameTypeCount > 1 ? `${TYPE_NAMES[type]} ${sameTypeCount}` : TYPE_NAMES[type];
         dispatch({
           type: 'ADD_ROOM',
           room: {
             id: `r${nanoid()}`,
-            name: `Kambarys ${state.plan.rooms.length + 1}`,
+            name: roomName,
             type,
             x: Math.min(sw.x, ex),
             y: Math.min(sw.y, ey),

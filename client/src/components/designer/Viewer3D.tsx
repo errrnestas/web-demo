@@ -1276,7 +1276,14 @@ export default function Viewer3D() {
   const [showLabels, setShowLabels] = useState(true);
   const [showCeiling, setShowCeiling] = useState(true);
   const [lighting, setLighting] = useState<LightingPreset>('day');
+  const [pointerLocked, setPointerLocked] = useState(false);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onLockChange = () => setPointerLocked(!!document.pointerLockElement);
+    document.addEventListener('pointerlockchange', onLockChange);
+    return () => document.removeEventListener('pointerlockchange', onLockChange);
+  }, []);
 
   const { center, planDiag } = useMemo(() => {
     if (allRooms.length === 0) return { center: { x: 5, z: 5 }, planDiag: 15 };
@@ -1413,10 +1420,26 @@ export default function Viewer3D() {
         </div>
       </div>
 
-      {cameraMode === 'walk' && (
+      {cameraMode === 'walk' && pointerLocked && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="relative w-5 h-5">
+            <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/70 -translate-x-1/2" />
+            <div className="absolute top-1/2 left-0 right-0 h-px bg-white/70 -translate-y-1/2" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-1 h-1 rounded-full bg-white/90" />
+            </div>
+          </div>
+        </div>
+      )}
+      {cameraMode === 'walk' && !pointerLocked && (
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-xs text-slate-300 bg-slate-900/90 px-4 py-2.5 rounded-xl pointer-events-none backdrop-blur border border-slate-700">
           <div className="text-center mb-1 font-medium">Spustelėkite ekraną, kad užfiksuotumėte pelę</div>
           <div className="text-slate-500">W/A/S/D — judėjimas · Pelė — žiūrėjimas</div>
+        </div>
+      )}
+      {cameraMode === 'walk' && pointerLocked && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-slate-400 bg-slate-900/80 px-3 py-1.5 rounded-full pointer-events-none backdrop-blur">
+          W/A/S/D — judėjimas · Esc — išeiti
         </div>
       )}
 

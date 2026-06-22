@@ -125,7 +125,8 @@ type Action =
   | { type: 'TOGGLE_GRID' }
   | { type: 'TOGGLE_SNAP' }
   | { type: 'SET_GRID_SIZE'; size: number }
-  | { type: 'SET_CAMERA_MODE'; mode: 'orbit' | 'firstperson' };
+  | { type: 'SET_CAMERA_MODE'; mode: 'orbit' | 'firstperson' }
+  | { type: 'SET_WALL_HEIGHT'; height: number };
 
 function savePlanToHistory(state: DesignerState, newPlan: FloorPlan): Pick<DesignerState, 'history' | 'historyIndex'> {
   const newHistory = state.history.slice(0, state.historyIndex + 1);
@@ -206,6 +207,8 @@ function reducer(state: DesignerState, action: Action): DesignerState {
       return { ...state, gridSize: action.size };
     case 'SET_CAMERA_MODE':
       return { ...state, cameraMode: action.mode };
+    case 'SET_WALL_HEIGHT':
+      return updatePlan(state, p => ({ ...p, wallHeight: action.height }));
     default:
       return state;
   }
