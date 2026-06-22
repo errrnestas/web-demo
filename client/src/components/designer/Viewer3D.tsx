@@ -161,6 +161,7 @@ function RoomFloor({ room, showLabels, selectedId, onSelect }: { room: Room; sho
   const cx = room.x + room.width / 2;
   const cz = room.y + room.height / 2;
   const texture = useMemo(() => createFloorTexture(room.floorMaterial, color), [room.floorMaterial, color]);
+  useEffect(() => () => { texture.dispose(); }, [texture]);
 
   return (
     <>
@@ -219,6 +220,7 @@ function WallSegment({
     }
     return null;
   }, [wallMaterial]);
+  useEffect(() => () => { texture?.dispose(); }, [texture]);
 
   return (
     <mesh castShadow receiveShadow position={[x, y, z]}>
@@ -322,7 +324,7 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
             const wff = 0.06; // window frame width
             let gx = baseX, gz = baseZ;
             if (isHorizontal) {
-              gx = (wall === 'top' ? room.x : room.x) + segMid;
+              gx = room.x + segMid;
               gz = wall === 'top' ? room.y : room.y + room.height;
               result.push(
                 <mesh key={`glass-${wall}-${op.start}`} position={[gx, glassY, gz + (wall === 'top' ? -wt / 2 : wt / 2)]}>
@@ -352,7 +354,7 @@ function RoomWalls({ room, doors, windows, wallHeight, allRooms }: { room: Room;
                 </mesh>
               );
             } else {
-              gz = (wall === 'left' ? room.y : room.y) + segMid;
+              gz = room.y + segMid;
               gx = wall === 'left' ? room.x : room.x + room.width;
               result.push(
                 <mesh key={`glass-${wall}-${op.start}`} position={[gx + (wall === 'left' ? -wt / 2 : wt / 2), glassY, gz]}>
@@ -850,8 +852,8 @@ function FurnitureShape({ item, selectedId, onSelect }: { item: FurnitureItem; s
         <boxGeometry args={[item.width, 0.86, item.depth]} />
         <meshStandardMaterial color={item.color} roughness={0.3} />
       </mesh>);
-      shapes.push(<mesh key="drum" position={[0, 0.5, item.depth / 2 - 0.04]}>
-        <cylinderGeometry args={[0.22, 0.22, 0.05, 20]} rotation={[Math.PI / 2, 0, 0]} />
+      shapes.push(<mesh key="drum" position={[0, 0.5, item.depth / 2 - 0.04]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.22, 0.22, 0.05, 20]} />
         <meshStandardMaterial color="#a8d8ea" transparent opacity={0.4} roughness={0.05} />
       </mesh>);
       break;
