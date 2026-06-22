@@ -1287,6 +1287,53 @@ export default function FloorPlanCanvas() {
       }
     }
 
+    // Furniture placement ghost preview
+    if (state.tool === 'furniture' && state.pendingFurnitureType && !dragging) {
+      const catalog = FURNITURE_CATALOG.find(f => f.type === state.pendingFurnitureType);
+      if (catalog) {
+        let px = snapTo(world.x - catalog.width / 2, state.gridSize, state.snapToGrid);
+        let py = snapTo(world.y - catalog.depth / 2, state.gridSize, state.snapToGrid);
+        // Wall snap for preview
+        const SNAP = 0.22;
+        let bx2 = SNAP, by2 = SNAP;
+        for (const room of state.plan.rooms) {
+          const xs = [
+            { v: room.x, d: Math.abs(px - room.x) },
+            { v: room.x + room.width - catalog.width, d: Math.abs(px + catalog.width - (room.x + room.width)) },
+          ];
+          for (const e of xs) { if (e.d < bx2) { bx2 = e.d; px = e.v; } }
+          const ys = [
+            { v: room.y, d: Math.abs(py - room.y) },
+            { v: room.y + room.height - catalog.depth, d: Math.abs(py + catalog.depth - (room.y + room.height)) },
+          ];
+          for (const e of ys) { if (e.d < by2) { by2 = e.d; py = e.v; } }
+        }
+        const { x: gx, y: gy } = worldToCanvas(px, py);
+        const gw = catalog.width * scaleRef.current;
+        const gh = catalog.depth * scaleRef.current;
+        const ctx3 = canvas.getContext('2d');
+        if (ctx3) {
+          ctx3.save();
+          ctx3.globalAlpha = 0.55;
+          ctx3.fillStyle = catalog.color;
+          ctx3.fillRect(gx, gy, gw, gh);
+          ctx3.globalAlpha = 0.9;
+          ctx3.strokeStyle = '#f59e0b';
+          ctx3.lineWidth = 2;
+          ctx3.setLineDash([4, 3]);
+          ctx3.strokeRect(gx, gy, gw, gh);
+          ctx3.setLineDash([]);
+          ctx3.globalAlpha = 1;
+          ctx3.fillStyle = '#fff';
+          ctx3.font = `bold ${Math.max(9, Math.min(12, gw / 6))}px Inter, sans-serif`;
+          ctx3.textAlign = 'center';
+          ctx3.textBaseline = 'middle';
+          ctx3.fillText(catalog.name, gx + gw / 2, gy + gh / 2);
+          ctx3.restore();
+        }
+      }
+    }
+
     // Hover tooltip — direct DOM manipulation to avoid re-render at 60fps
     const tt = tooltipRef.current;
     if (tt) {
