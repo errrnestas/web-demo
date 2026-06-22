@@ -35,6 +35,7 @@ export default function HomeDesigner() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (document.pointerLockElement) return; // walk mode — don't intercept tool keys
       switch (e.key.toLowerCase()) {
         case 's':
           if (!e.ctrlKey && !e.metaKey) dispatch({ type: 'SET_TOOL', tool: 'select' });

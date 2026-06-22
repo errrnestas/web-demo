@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { useDesigner } from '@/lib/designer-store';
 import type { Room, Door, WindowElement, FurnitureItem, FloorPlan } from '@/types/designer';
 import { ROOM_COLORS, FURNITURE_CATALOG } from '@/types/designer';
-import { nanoid } from '@/lib/utils';
+import { cn, nanoid } from '@/lib/utils';
 
 const BASE_SCALE = 60; // pixels per meter at zoom=1
 
@@ -123,6 +123,8 @@ type DragState =
   | { id: string; type: 'room' | 'furniture'; offX: number; offY: number }
   | { id: string; type: 'door' | 'window'; room: Room };
 
+type CtxMenuItem = { label: string; action: () => void; danger?: boolean; shortcut?: string };
+
 export default function FloorPlanCanvas() {
   const { state, dispatch } = useDesigner();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -142,6 +144,7 @@ export default function FloorPlanCanvas() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renamingPos, setRenamingPos] = useState<{ x: number; y: number } | null>(null);
   const [renamingVal, setRenamingVal] = useState('');
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; items: CtxMenuItem[] } | null>(null);
 
   useEffect(() => {
     function resize() {
@@ -797,6 +800,7 @@ export default function FloorPlanCanvas() {
   const liveDrawRef = useRef<{startWorld: {x: number, y: number}} | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    setCtxMenu(null);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const pos = getPointerPos(canvas, e);
@@ -1308,6 +1312,125 @@ export default function FloorPlanCanvas() {
     setRenamingPos(null);
   }, [renamingId, renamingVal, state.plan.rooms, dispatch]);
 
+  // Escape cancels local canvas operations (drawing, measure, rename, context menu)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setDrawing(null);
+      liveDrawRef.current = null;
+      setMeasureStart(null);
+      setRenamingId(null);
+      setRenamingPos(null);
+      setCtxMenu(null);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const pos = getPointerPos(canvas, e);
+    const world = canvasToWorld(pos.x, pos.y);
+    const items: CtxMenuItem[] = [];
+
+    // Check furniture first (topmost)
+    const furn = [...state.plan.furniture].reverse().find(f => {
+      const rad = (f.rotation * Math.PI) / 180;
+      const dx = world.x - (f.x + f.width / 2);
+      const dy = world.y - (f.y + f.depth / 2);
+      const lx = dx * Math.cos(-rad) - dy * Math.sin(-rad);
+      const ly = dx * Math.sin(-rad) + dy * Math.cos(-rad);
+      return Math.abs(lx) <= f.width / 2 && Math.abs(ly) <= f.depth / 2;
+    });
+    if (furn) {
+      dispatch({ type: 'SELECT', id: furn.id });
+      items.push(
+        { label: '↻ Sukti 90°', shortcut: 'R', action: () => dispatch({ type: 'UPDATE_FURNITURE', item: { ...furn, rotation: (furn.rotation + 90) % 360 } }) },
+        { label: '⧉ Kopijuoti', shortcut: 'Ctrl+D', action: () => {
+            const dup = { ...furn, id: `f${nanoid()}`, x: furn.x + 0.3, y: furn.y + 0.3 };
+            dispatch({ type: 'ADD_FURNITURE', item: dup });
+            dispatch({ type: 'SELECT', id: dup.id });
+          }
+        },
+        { label: '🗑 Ištrinti', danger: true, shortcut: 'Del', action: () => dispatch({ type: 'DELETE_FURNITURE', id: furn.id }) }
+      );
+      setCtxMenu({ x: pos.x, y: pos.y, items });
+      return;
+    }
+
+    // Check doors
+    const door = state.plan.doors.find(d => {
+      const r = state.plan.rooms.find(r => r.id === d.roomId);
+      if (!r) return false;
+      const dw = d.width;
+      switch (d.wall) {
+        case 'top': return Math.abs(world.y - r.y) < 0.3 && world.x >= r.x + (r.width - dw) * d.position - 0.15 && world.x <= r.x + (r.width - dw) * d.position + dw + 0.15;
+        case 'bottom': return Math.abs(world.y - (r.y + r.height)) < 0.3 && world.x >= r.x + (r.width - dw) * d.position - 0.15 && world.x <= r.x + (r.width - dw) * d.position + dw + 0.15;
+        case 'left': return Math.abs(world.x - r.x) < 0.3 && world.y >= r.y + (r.height - dw) * d.position - 0.15 && world.y <= r.y + (r.height - dw) * d.position + dw + 0.15;
+        case 'right': return Math.abs(world.x - (r.x + r.width)) < 0.3 && world.y >= r.y + (r.height - dw) * d.position - 0.15 && world.y <= r.y + (r.height - dw) * d.position + dw + 0.15;
+      }
+      return false;
+    });
+    if (door) {
+      dispatch({ type: 'SELECT', id: door.id });
+      items.push(
+        { label: door.swingIn ? '↔ Atidaryti laukan' : '↔ Atidaryti vidun', action: () => dispatch({ type: 'UPDATE_DOOR', door: { ...door, swingIn: !door.swingIn } }) },
+        { label: '🗑 Ištrinti duris', danger: true, shortcut: 'Del', action: () => dispatch({ type: 'DELETE_DOOR', id: door.id }) }
+      );
+      setCtxMenu({ x: pos.x, y: pos.y, items });
+      return;
+    }
+
+    // Check windows
+    const win = state.plan.windows.find(w => {
+      const r = state.plan.rooms.find(r => r.id === w.roomId);
+      if (!r) return false;
+      const hw = w.width / 2 + 0.15;
+      switch (w.wall) {
+        case 'top': return Math.abs(world.y - r.y) < 0.3 && Math.abs(world.x - (r.x + r.width * w.position)) < hw;
+        case 'bottom': return Math.abs(world.y - (r.y + r.height)) < 0.3 && Math.abs(world.x - (r.x + r.width * w.position)) < hw;
+        case 'left': return Math.abs(world.x - r.x) < 0.3 && Math.abs(world.y - (r.y + r.height * w.position)) < hw;
+        case 'right': return Math.abs(world.x - (r.x + r.width)) < 0.3 && Math.abs(world.y - (r.y + r.height * w.position)) < hw;
+        default: return false;
+      }
+    });
+    if (win) {
+      dispatch({ type: 'SELECT', id: win.id });
+      items.push(
+        { label: '🗑 Ištrinti langą', danger: true, shortcut: 'Del', action: () => dispatch({ type: 'DELETE_WINDOW', id: win.id }) }
+      );
+      setCtxMenu({ x: pos.x, y: pos.y, items });
+      return;
+    }
+
+    // Check rooms
+    const room = [...state.plan.rooms].reverse().find(r =>
+      world.x >= r.x && world.x <= r.x + r.width && world.y >= r.y && world.y <= r.y + r.height
+    );
+    if (room) {
+      dispatch({ type: 'SELECT', id: room.id });
+      const { x: cx, y: cy } = worldToCanvas(room.x + room.width / 2, room.y + room.height / 2);
+      items.push(
+        { label: '✏️ Pervadinti', action: () => {
+            setRenamingId(room.id);
+            setRenamingPos({ x: cx, y: cy });
+            setRenamingVal(room.name);
+          }
+        },
+        { label: '⧉ Kopijuoti', shortcut: 'Ctrl+D', action: () => {
+            const dup = { ...room, id: `r${nanoid()}`, x: room.x + 0.5, y: room.y + 0.5 };
+            dispatch({ type: 'ADD_ROOM', room: dup });
+            dispatch({ type: 'SELECT', id: dup.id });
+          }
+        },
+        { label: '🗑 Ištrinti', danger: true, shortcut: 'Del', action: () => dispatch({ type: 'DELETE_ROOM', id: room.id }) }
+      );
+      setCtxMenu({ x: pos.x, y: pos.y, items });
+    }
+  }, [state, canvasToWorld, worldToCanvas, dispatch]);
+
   const fitToView = useCallback(() => {
     if (state.plan.rooms.length === 0) { setZoom(1); setPanOffset({ x: 40, y: 40 }); return; }
     const minX = Math.min(...state.plan.rooms.map(r => r.x));
@@ -1479,6 +1602,7 @@ export default function FloorPlanCanvas() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onDoubleClick={handleDoubleClick}
+        onContextMenu={handleContextMenu}
         onMouseLeave={() => { setDragging(null); setIsPanning(false); guideLinesRef.current = { vertX: null, horizY: null }; if (tooltipRef.current) tooltipRef.current.style.display = 'none'; }}
       />
       {/* Hover tooltip */}
@@ -1501,6 +1625,29 @@ export default function FloorPlanCanvas() {
             }}
             className="bg-slate-800/95 border-2 border-blue-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg shadow-xl outline-none text-center min-w-[140px] max-w-[220px]"
           />
+        </div>
+      )}
+      {/* Right-click context menu */}
+      {ctxMenu && (
+        <div
+          className="absolute z-30 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl py-1.5 min-w-[168px]"
+          style={{ left: Math.min(ctxMenu.x, canvasSize.w - 185), top: Math.min(ctxMenu.y, canvasSize.h - ctxMenu.items.length * 38 - 16) }}
+        >
+          {ctxMenu.items.map((item, i) => (
+            <button
+              key={i}
+              onClick={() => { item.action(); setCtxMenu(null); }}
+              className={cn(
+                'w-full text-left px-3.5 py-2 text-sm flex items-center justify-between gap-6 transition-colors',
+                item.danger
+                  ? 'text-red-400 hover:bg-red-900/30 hover:text-red-300'
+                  : 'text-slate-200 hover:bg-slate-700 hover:text-white'
+              )}
+            >
+              <span>{item.label}</span>
+              {item.shortcut && <span className="text-slate-500 text-xs shrink-0">{item.shortcut}</span>}
+            </button>
+          ))}
         </div>
       )}
       {/* Export buttons */}
@@ -1572,7 +1719,7 @@ export default function FloorPlanCanvas() {
         {state.tool === 'room' && 'Spustelėkite ir vilkite, kad sukurtumėte kambarį'}
         {state.tool === 'door' && 'Spustelėkite ant sienos, kad pridėtumėte duris'}
         {state.tool === 'window' && 'Spustelėkite ant sienos, kad pridėtumėte langą'}
-        {state.tool === 'select' && 'Spustelėkite pasirinkti · Vilkite judinti · Scroll priartinti'}
+        {state.tool === 'select' && 'Spustelėkite pasirinkti · Dešinys – meniu · Dbl-click pervadinti · Scroll priartinti'}
         {state.tool === 'delete' && 'Spustelėkite elementą, kad ištrintumėte'}
         {state.tool === 'furniture' && (state.pendingFurnitureType ? 'Spustelėkite, kad padėtumėte baldą' : 'Pasirinkite baldą kairėje')}
         {state.tool === 'measure' && (measureStart ? 'Spustelėkite antrą tašką · Dar kartą – atstatyti' : 'Spustelėkite pirmą tašką, nuo kurio matuoti')}
