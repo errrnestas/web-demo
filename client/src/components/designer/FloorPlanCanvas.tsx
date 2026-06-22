@@ -1098,7 +1098,32 @@ export default function FloorPlanCanvas() {
         }
       } else {
         const item = state.plan.furniture.find(f => f.id === dragging.id);
-        if (item) dispatch({ type: 'UPDATE_FURNITURE', item: { ...item, x: sx, y: sy } });
+        if (item) {
+          // Snap furniture edges to room walls
+          const WALL_SNAP = 0.22;
+          let bestX = WALL_SNAP, bestY = WALL_SNAP;
+          for (const room of state.plan.rooms) {
+            const xEdges = [
+              { snap: room.x,                             dist: Math.abs(sx - room.x) },
+              { snap: room.x + room.width - item.width,   dist: Math.abs(sx + item.width - (room.x + room.width)) },
+              { snap: room.x - item.width,                dist: Math.abs(sx + item.width - room.x) },
+              { snap: room.x + room.width,                dist: Math.abs(sx - (room.x + room.width)) },
+            ];
+            for (const e of xEdges) {
+              if (e.dist < bestX) { bestX = e.dist; sx = e.snap; }
+            }
+            const yEdges = [
+              { snap: room.y,                               dist: Math.abs(sy - room.y) },
+              { snap: room.y + room.height - item.depth,   dist: Math.abs(sy + item.depth - (room.y + room.height)) },
+              { snap: room.y - item.depth,                 dist: Math.abs(sy + item.depth - room.y) },
+              { snap: room.y + room.height,                dist: Math.abs(sy - (room.y + room.height)) },
+            ];
+            for (const e of yEdges) {
+              if (e.dist < bestY) { bestY = e.dist; sy = e.snap; }
+            }
+          }
+          dispatch({ type: 'UPDATE_FURNITURE', item: { ...item, x: sx, y: sy } });
+        }
       }
     }
 
