@@ -117,6 +117,21 @@ export default function HomeDesigner() {
             else dispatch({ type: 'UNDO' });
           }
           break;
+        case 'tab': {
+          e.preventDefault();
+          const { plan, selectedId } = state;
+          const allIds = [
+            ...plan.rooms.map(r => r.id),
+            ...plan.furniture.map(f => f.id),
+          ];
+          if (allIds.length === 0) break;
+          const currentIdx = allIds.indexOf(selectedId ?? '');
+          const nextIdx = e.shiftKey
+            ? (currentIdx - 1 + allIds.length) % allIds.length
+            : (currentIdx + 1) % allIds.length;
+          dispatch({ type: 'SELECT', id: allIds[nextIdx] });
+          break;
+        }
         case '?':
           setShowHelp(h => !h);
           break;
@@ -345,6 +360,7 @@ export default function HomeDesigner() {
                   ['W', 'Langas'],
                   ['F', 'Baldai'],
                   ['M', 'Matuoti atstumą'],
+                  ['Tab / Shift+Tab', 'Cikluoti per elementus'],
                   ['G / Home', 'Tilpti į ekraną'],
                   ['↑↓←→', 'Judinti pasirinktą'],
                   ['Shift+↑↓←→', 'Judinti ×5'],
