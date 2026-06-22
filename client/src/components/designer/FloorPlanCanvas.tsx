@@ -1334,6 +1334,86 @@ export default function FloorPlanCanvas() {
       }
     }
 
+    // Door/Window placement ghost preview
+    if ((state.tool === 'door' || state.tool === 'window') && !dragging) {
+      const room = state.plan.rooms.find(r =>
+        world.x >= r.x - 0.5 && world.x <= r.x + r.width + 0.5 &&
+        world.y >= r.y - 0.5 && world.y <= r.y + r.height + 0.5
+      );
+      if (room) {
+        const distTop = Math.abs(world.y - room.y);
+        const distBottom = Math.abs(world.y - (room.y + room.height));
+        const distLeft = Math.abs(world.x - room.x);
+        const distRight = Math.abs(world.x - (room.x + room.width));
+        const minDist = Math.min(distTop, distBottom, distLeft, distRight);
+        let wall: 'top' | 'bottom' | 'left' | 'right' = 'top';
+        if (minDist === distTop) wall = 'top';
+        else if (minDist === distBottom) wall = 'bottom';
+        else if (minDist === distLeft) wall = 'left';
+        else wall = 'right';
+
+        drawCanvas();
+        const ctxP = canvas.getContext('2d');
+        if (ctxP) {
+          const { x: rx, y: ry } = worldToCanvas(room.x, room.y);
+          const rw = room.width * scaleRef.current;
+          const rh = room.height * scaleRef.current;
+          ctxP.save();
+          ctxP.globalAlpha = 0.75;
+          if (state.tool === 'door') {
+            const doorW = 0.9 * scaleRef.current;
+            let pos = 0.5;
+            if (wall === 'top' || wall === 'bottom') pos = Math.max(0.05, Math.min(0.9, (world.x - room.x) / room.width - 0.05));
+            else pos = Math.max(0.05, Math.min(0.9, (world.y - room.y) / room.height - 0.05));
+            ctxP.strokeStyle = '#f59e0b';
+            ctxP.lineWidth = 2;
+            ctxP.fillStyle = '#1a1a2e';
+            if (wall === 'top') {
+              const dx = rx + (rw - doorW) * pos + doorW / 2;
+              ctxP.fillRect(dx - doorW / 2, ry - 3, doorW, 6);
+              ctxP.beginPath();
+              ctxP.moveTo(dx - doorW / 2, ry);
+              ctxP.arc(dx - doorW / 2, ry, doorW, 0, Math.PI / 2);
+              ctxP.stroke();
+            } else if (wall === 'bottom') {
+              const dx = rx + (rw - doorW) * pos + doorW / 2;
+              ctxP.fillRect(dx - doorW / 2, ry + rh - 3, doorW, 6);
+              ctxP.beginPath();
+              ctxP.moveTo(dx - doorW / 2, ry + rh);
+              ctxP.arc(dx - doorW / 2, ry + rh, doorW, 0, -Math.PI / 2, true);
+              ctxP.stroke();
+            } else if (wall === 'left') {
+              const dy = ry + (rh - doorW) * pos + doorW / 2;
+              ctxP.fillRect(rx - 3, dy - doorW / 2, 6, doorW);
+              ctxP.beginPath();
+              ctxP.moveTo(rx, dy - doorW / 2);
+              ctxP.arc(rx, dy - doorW / 2, doorW, Math.PI / 2, Math.PI);
+              ctxP.stroke();
+            } else {
+              const dy = ry + (rh - doorW) * pos + doorW / 2;
+              ctxP.fillRect(rx + rw - 3, dy - doorW / 2, 6, doorW);
+              ctxP.beginPath();
+              ctxP.moveTo(rx + rw, dy - doorW / 2);
+              ctxP.arc(rx + rw, dy - doorW / 2, doorW, 0, Math.PI / 2);
+              ctxP.stroke();
+            }
+          } else {
+            // Window preview
+            const winW = 1.2 * scaleRef.current;
+            let pos = 0.5;
+            if (wall === 'top' || wall === 'bottom') pos = Math.max(0.1, Math.min(0.85, (world.x - room.x) / room.width));
+            else pos = Math.max(0.1, Math.min(0.85, (world.y - room.y) / room.height));
+            ctxP.fillStyle = '#38bdf8';
+            if (wall === 'top') ctxP.fillRect(rx + rw * pos - winW / 2, ry - 5, winW, 10);
+            else if (wall === 'bottom') ctxP.fillRect(rx + rw * pos - winW / 2, ry + rh - 5, winW, 10);
+            else if (wall === 'left') ctxP.fillRect(rx - 5, ry + rh * pos - winW / 2, 10, winW);
+            else ctxP.fillRect(rx + rw - 5, ry + rh * pos - winW / 2, 10, winW);
+          }
+          ctxP.restore();
+        }
+      }
+    }
+
     // Hover tooltip — direct DOM manipulation to avoid re-render at 60fps
     const tt = tooltipRef.current;
     if (tt) {
