@@ -24,6 +24,7 @@ type Action =
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'SET_PENDING_FURNITURE'; furnitureType: string | null }
+  | { type: 'SET_PENDING_ROOM_TYPE'; roomType: any }
   | { type: 'TOGGLE_GRID' }
   | { type: 'TOGGLE_SNAP' }
   | { type: 'SET_GRID_SIZE'; size: number }
@@ -110,6 +111,8 @@ export function designerReducer(state: DesignerState, action: Action): DesignerS
     }
     case 'SET_PENDING_FURNITURE':
       return { ...state, pendingFurnitureType: action.furnitureType };
+    case 'SET_PENDING_ROOM_TYPE':
+      return { ...state, pendingRoomType: action.roomType };
     case 'TOGGLE_GRID':
       return { ...state, showGrid: !state.showGrid };
     case 'TOGGLE_SNAP':

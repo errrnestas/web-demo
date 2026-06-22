@@ -1,6 +1,6 @@
 import { useDesigner } from '@/lib/designer-store';
-import { FURNITURE_CATALOG } from '@/types/designer';
-import type { Tool } from '@/types/designer';
+import { FURNITURE_CATALOG, ROOM_TYPE_LABELS, ROOM_COLORS, FLOOR_MATERIAL_COLORS } from '@/types/designer';
+import type { Tool, Room } from '@/types/designer';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { PLAN_TEMPLATES } from '@/lib/templates';
@@ -131,6 +131,30 @@ export default function LeftPanel() {
           )}
         </div>
       </div>
+
+      {/* Room type picker — visible when room tool is active */}
+      {state.tool === 'room' && (
+        <div className="p-3 border-b border-slate-700">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Kambario tipas</p>
+          <div className="grid grid-cols-2 gap-1">
+            {(Object.entries(ROOM_TYPE_LABELS) as [Room['type'], string][]).map(([type, label]) => (
+              <button
+                key={type}
+                onClick={() => dispatch({ type: 'SET_PENDING_ROOM_TYPE', roomType: type })}
+                className={cn(
+                  'flex items-center gap-1.5 text-left text-xs py-1.5 px-2 rounded-lg border transition-all',
+                  state.pendingRoomType === type
+                    ? 'bg-blue-700 border-blue-600 text-white'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'
+                )}
+              >
+                <span className="shrink-0">{ROOM_TYPE_ICONS[type]}</span>
+                <span className="truncate" style={{ fontSize: '9px' }}>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Room list — visible when not in furniture mode */}
       {state.tool !== 'furniture' && state.plan.rooms.length > 0 && (

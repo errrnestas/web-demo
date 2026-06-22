@@ -95,6 +95,7 @@ export interface DesignerState {
   history: FloorPlan[];
   historyIndex: number;
   pendingFurnitureType: string | null;
+  pendingRoomType: Room['type'];
   showGrid: boolean;
   snapToGrid: boolean;
   gridSize: number;
@@ -124,6 +125,7 @@ type Action =
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'SET_PENDING_FURNITURE'; furnitureType: string | null }
+  | { type: 'SET_PENDING_ROOM_TYPE'; roomType: Room['type'] }
   | { type: 'TOGGLE_GRID' }
   | { type: 'TOGGLE_SNAP' }
   | { type: 'SET_GRID_SIZE'; size: number }
@@ -211,6 +213,8 @@ function reducer(state: DesignerState, action: Action): DesignerState {
     }
     case 'SET_PENDING_FURNITURE':
       return { ...state, pendingFurnitureType: action.furnitureType };
+    case 'SET_PENDING_ROOM_TYPE':
+      return { ...state, pendingRoomType: action.roomType };
     case 'TOGGLE_GRID':
       return { ...state, showGrid: !state.showGrid };
     case 'TOGGLE_SNAP':
@@ -244,6 +248,7 @@ export function createInitialState(): DesignerState {
     history: [plan],
     historyIndex: 0,
     pendingFurnitureType: null,
+    pendingRoomType: 'living' as Room['type'],
     showGrid: true,
     snapToGrid: true,
     gridSize: 0.5,

@@ -1,7 +1,8 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useDesigner } from '@/lib/designer-store';
 import type { Room, Door, WindowElement, FurnitureItem, FloorPlan } from '@/types/designer';
-import { ROOM_COLORS, FURNITURE_CATALOG } from '@/types/designer';
+import { ROOM_COLORS, FURNITURE_CATALOG, FLOOR_MATERIAL_COLORS, ROOM_TYPE_LABELS } from '@/types/designer';
+import type { FloorMaterial } from '@/types/designer';
 import { cn, nanoid } from '@/lib/utils';
 
 const BASE_SCALE = 60; // pixels per meter at zoom=1
@@ -1576,15 +1577,15 @@ export default function FloorPlanCanvas() {
       const rh = Math.abs(ey - sw.y);
 
       if (rw >= 0.5 && rh >= 0.5) {
-        const types: Room['type'][] = ['living', 'bedroom', 'kitchen', 'bathroom', 'dining', 'office', 'hallway', 'other'];
-        const type = types[state.plan.rooms.length % types.length];
-        const TYPE_NAMES: Record<Room['type'], string> = {
-          living: 'Svetainė', bedroom: 'Miegamasis', kitchen: 'Virtuvė',
-          bathroom: 'Vonios kambarys', dining: 'Valgomasis', office: 'Kabinetas',
-          hallway: 'Koridorius', garage: 'Garažas', other: 'Kambarys',
+        const type = state.pendingRoomType;
+        const DEFAULT_FLOOR_MAT: Record<Room['type'], FloorMaterial> = {
+          living: 'wood', bedroom: 'carpet', kitchen: 'tile', bathroom: 'tile',
+          dining: 'wood', office: 'wood', hallway: 'tile', garage: 'concrete', other: 'wood',
         };
+        const floorMaterial = DEFAULT_FLOOR_MAT[type];
         const sameTypeCount = state.plan.rooms.filter(r => r.type === type).length + 1;
-        const roomName = sameTypeCount > 1 ? `${TYPE_NAMES[type]} ${sameTypeCount}` : TYPE_NAMES[type];
+        const label = ROOM_TYPE_LABELS[type] ?? 'Kambarys';
+        const roomName = sameTypeCount > 1 ? `${label} ${sameTypeCount}` : label;
         dispatch({
           type: 'ADD_ROOM',
           room: {
@@ -1595,7 +1596,7 @@ export default function FloorPlanCanvas() {
             y: Math.min(sw.y, ey),
             width: rw,
             height: rh,
-            floorMaterial: 'wood',
+            floorMaterial,
             wallMaterial: 'white',
             wallColor: '#f8f8f8',
             floorColor: ROOM_COLORS[type],

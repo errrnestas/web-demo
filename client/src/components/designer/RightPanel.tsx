@@ -1,12 +1,18 @@
 import { useDesigner } from '@/lib/designer-store';
 import { cn, nanoid } from '@/lib/utils';
-import type { Room, FurnitureItem, Door, WindowElement } from '@/types/designer';
+import type { Room, FurnitureItem, Door, WindowElement, FloorMaterial } from '@/types/designer';
 import {
   ROOM_TYPE_LABELS,
   WALL_MATERIAL_COLORS,
   FLOOR_MATERIAL_COLORS,
   FURNITURE_CATALOG,
+  ROOM_COLORS,
 } from '@/types/designer';
+
+const DEFAULT_FLOOR_MAT: Record<Room['type'], FloorMaterial> = {
+  living: 'wood', bedroom: 'carpet', kitchen: 'tile', bathroom: 'tile',
+  dining: 'wood', office: 'wood', hallway: 'tile', garage: 'concrete', other: 'wood',
+};
 
 const ROOM_TYPES = Object.entries(ROOM_TYPE_LABELS) as [Room['type'], string][];
 const WALL_MATERIALS = Object.entries(WALL_MATERIAL_COLORS) as [Room['wallMaterial'], string][];
@@ -50,7 +56,10 @@ function RoomEditor({ room }: { room: Room }) {
           {ROOM_TYPES.map(([type, label]) => (
             <button
               key={type}
-              onClick={() => update({ type })}
+              onClick={() => {
+                const floorMaterial = DEFAULT_FLOOR_MAT[type];
+                update({ type, floorMaterial, floorColor: ROOM_COLORS[type], wallMaterial: room.wallMaterial });
+              }}
               className={cn('text-xs py-1.5 px-2 rounded-lg border transition-all text-left',
                 room.type === type ? 'bg-blue-700 border-blue-600 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'
               )}
