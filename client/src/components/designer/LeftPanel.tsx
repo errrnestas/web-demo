@@ -26,8 +26,11 @@ export default function LeftPanel() {
   const { state, dispatch } = useDesigner();
   const [furnitureCat, setFurnitureCat] = useState('Svetainė');
   const [showTemplates, setShowTemplates] = useState(false);
+  const [furnitureSearch, setFurnitureSearch] = useState('');
 
-  const filteredFurniture = FURNITURE_CATALOG.filter(f => f.category === furnitureCat);
+  const filteredFurniture = furnitureSearch.trim()
+    ? FURNITURE_CATALOG.filter(f => f.name.toLowerCase().includes(furnitureSearch.toLowerCase()))
+    : FURNITURE_CATALOG.filter(f => f.category === furnitureCat);
 
   return (
     <div className="w-[200px] bg-slate-900 border-r border-slate-700 flex flex-col overflow-hidden shrink-0">
@@ -166,20 +169,28 @@ export default function LeftPanel() {
       {state.tool === 'furniture' && (
         <div className="flex-1 overflow-hidden flex flex-col">
           <div className="p-3 border-b border-slate-700">
-            <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Kategorija</p>
-            <div className="flex flex-col gap-1">
-              {FURNITURE_CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setFurnitureCat(cat)}
-                  className={cn('text-left text-xs px-2 py-1.5 rounded-md transition-all',
-                    furnitureCat === cat ? 'bg-blue-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                  )}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            <input
+              type="text"
+              placeholder="Ieškoti baldų..."
+              value={furnitureSearch}
+              onChange={e => setFurnitureSearch(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 mb-2.5"
+            />
+            {!furnitureSearch && (
+              <div className="flex flex-col gap-0.5">
+                {FURNITURE_CATEGORIES.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setFurnitureCat(cat)}
+                    className={cn('text-left text-xs px-2 py-1.5 rounded-md transition-all',
+                      furnitureCat === cat ? 'bg-blue-700 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {filteredFurniture.map(f => (
