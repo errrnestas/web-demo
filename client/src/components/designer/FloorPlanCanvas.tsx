@@ -1133,9 +1133,14 @@ export default function FloorPlanCanvas() {
       }
 
     } else if (state.tool === 'delete') {
-      const furniture = state.plan.furniture.find(f =>
-        world.x >= f.x && world.x <= f.x + f.width && world.y >= f.y && world.y <= f.y + f.depth
-      );
+      const furniture = [...state.plan.furniture].reverse().find(f => {
+        const rad = (f.rotation * Math.PI) / 180;
+        const dx = world.x - (f.x + f.width / 2);
+        const dy = world.y - (f.y + f.depth / 2);
+        const lx = dx * Math.cos(-rad) - dy * Math.sin(-rad);
+        const ly = dx * Math.sin(-rad) + dy * Math.cos(-rad);
+        return Math.abs(lx) <= f.width / 2 && Math.abs(ly) <= f.depth / 2;
+      });
       if (furniture) { dispatch({ type: 'DELETE_FURNITURE', id: furniture.id }); return; }
       const room = state.plan.rooms.find(r =>
         world.x >= r.x && world.x <= r.x + r.width && world.y >= r.y && world.y <= r.y + r.height
@@ -1958,6 +1963,7 @@ export default function FloorPlanCanvas() {
               if (w) dispatch({ type: 'UPDATE_WINDOW', win: w });
             }
           }
+          if (drawing) { setDrawing(null); liveDrawRef.current = null; }
           setDragging(null); setIsPanning(false); guideLinesRef.current = { vertX: null, horizY: null }; if (tooltipRef.current) tooltipRef.current.style.display = 'none';
         }}
       />
