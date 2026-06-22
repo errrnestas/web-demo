@@ -1376,6 +1376,7 @@ export default function FloorPlanCanvas() {
 
     // Door/Window placement ghost preview
     if ((state.tool === 'door' || state.tool === 'window') && !dragging) {
+      drawCanvas();
       const room = state.plan.rooms.find(r =>
         world.x >= r.x - 0.5 && world.x <= r.x + r.width + 0.5 &&
         world.y >= r.y - 0.5 && world.y <= r.y + r.height + 0.5
@@ -1392,7 +1393,6 @@ export default function FloorPlanCanvas() {
         else if (minDist === distLeft) wall = 'left';
         else wall = 'right';
 
-        drawCanvas();
         const ctxP = canvas.getContext('2d');
         if (ctxP) {
           const { x: rx, y: ry } = worldToCanvas(room.x, room.y);
