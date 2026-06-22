@@ -144,7 +144,7 @@ export const PLAN_TEMPLATES: { name: string; description: string; icon: string; 
         { id: 'r7', name: 'Miegamasis 2', type: 'bedroom', x: 4.5, y: 8, width: 3.5, height: 4, floorMaterial: 'carpet', wallMaterial: 'green', wallColor: '#c8e0c8', floorColor: '#b0c0a8' },
         { id: 'r8', name: 'Miegamasis 3', type: 'bedroom', x: 8, y: 8, width: 2.5, height: 4, floorMaterial: 'carpet', wallMaterial: 'cream', wallColor: '#f5ede0', floorColor: '#b8a898' },
         { id: 'r9', name: 'Vonios kamb. 2', type: 'bathroom', x: 8, y: 5.5, width: 2.5, height: 2.5, floorMaterial: 'tile', wallMaterial: 'white', wallColor: '#f0f0f0', floorColor: '#e0e0e0' },
-        { id: 'r10', name: 'Biuras', type: 'office', x: 6.5, y: 6.5, width: 4, height: 1.5, floorMaterial: 'wood', wallMaterial: 'gray', wallColor: '#d0d0d0', floorColor: '#c0b8a8' },
+        { id: 'r10', name: 'Koridorius', type: 'hallway', x: 6.5, y: 5.5, width: 1.5, height: 2.5, floorMaterial: 'tile', wallMaterial: 'cream', wallColor: '#f5f0e0', floorColor: '#d0c8b0' },
       ],
       doors: [
         { id: 'd1', roomId: 'r1', wall: 'right', position: 0.7, width: 0.9, swingIn: false },
@@ -189,7 +189,6 @@ export const PLAN_TEMPLATES: { name: string; description: string; icon: string; 
         { id: 'f17', type: 'shower', name: 'Dušas', x: 9.2, y: 5.6, width: 0.9, depth: 0.9, rotation: 0, color: '#e8f0f8' },
         { id: 'f18', type: 'plant', name: 'Augalas', x: 0.1, y: 0.1, width: 0.4, depth: 0.4, rotation: 0, color: '#3a7a3a' },
         { id: 'f19', type: 'plant', name: 'Augalas', x: 6.2, y: 7.0, width: 0.4, depth: 0.4, rotation: 0, color: '#3a7a3a' },
-        { id: 'f20', type: 'desk', name: 'Biuro stalas', x: 6.6, y: 6.6, width: 1.8, depth: 0.7, rotation: 0, color: '#808080' },
       ],
     },
   },

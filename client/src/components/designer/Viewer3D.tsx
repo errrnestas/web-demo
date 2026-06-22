@@ -689,6 +689,19 @@ function FurnitureShape({ item, selectedId, onSelect }: { item: FurnitureItem; s
         <boxGeometry args={[item.width, 0.5, item.depth]} />
         <meshStandardMaterial color={color} roughness={0.3} metalness={0.2} />
       </mesh>);
+      // Flat-panel TV on top
+      const tvW = Math.min(item.width * 0.88, 1.6);
+      const tvH = tvW * 0.56;
+      shapes.push(
+        <mesh key="tv-frame" castShadow position={[0, 0.5 + tvH / 2 + 0.06, 0]}>
+          <boxGeometry args={[tvW, tvH, 0.06]} />
+          <meshStandardMaterial color="#0a0a0a" roughness={0.15} metalness={0.5} />
+        </mesh>,
+        <mesh key="tv-screen" position={[0, 0.5 + tvH / 2 + 0.06, 0.032]}>
+          <boxGeometry args={[tvW - 0.04, tvH - 0.04, 0.001]} />
+          <meshStandardMaterial color="#0c1a2a" emissive="#1a3a60" emissiveIntensity={0.55} roughness={0.02} />
+        </mesh>
+      );
       break;
     }
     case 'wardrobe': {

@@ -97,6 +97,9 @@ export default function HomeDesigner() {
         case 'w': dispatch({ type: 'SET_TOOL', tool: 'window' }); break;
         case 'f': dispatch({ type: 'SET_TOOL', tool: 'furniture' }); break;
         case 'm': dispatch({ type: 'SET_TOOL', tool: 'measure' }); break;
+        case 'v':
+          dispatch({ type: 'SET_VIEW', view: state.view === '2d' ? '3d' : '2d' });
+          break;
         case 'delete':
         case 'backspace': {
           const { selectedId, plan } = state;
@@ -336,9 +339,12 @@ export default function HomeDesigner() {
                   ['Del / Backspace', 'Ištrinti pasirinktą'],
                   ['Ctrl+Z', 'Atšaukti'],
                   ['Ctrl+Shift+Z', 'Grąžinti'],
-                  ['Esc', 'Atšaukti pasirinkimą'],
+                  ['V', 'Jungti 2D/3D vaizdą'],
+                  ['Esc', 'Atšaukti / baigti veiksmą'],
                   ['Scroll', 'Priartinti/tolinti'],
                   ['Alt+vilkti', 'Slankioti'],
+                  ['Dbl-click', 'Pervadinti kambarį (2D)'],
+                  ['Dešinys', 'Kontekstinis meniu (2D)'],
                 ].map(([key, desc]) => (
                   <div key={key} className="flex items-center justify-between gap-4">
                     <kbd className="bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-xs text-slate-300 font-mono shrink-0">{key}</kbd>
