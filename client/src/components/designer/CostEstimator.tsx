@@ -34,10 +34,6 @@ export default function CostEstimator() {
 
   const estimate = useMemo(() => {
     const totalFloorArea = plan.rooms.reduce((s, r) => s + r.width * r.height, 0);
-    const totalWallArea = plan.rooms.reduce((s, r) => {
-      const perimeter = 2 * (r.width + r.height);
-      return s + perimeter * plan.wallHeight;
-    }, 0);
 
     const floorCost = plan.rooms.reduce((s, r) => {
       const area = r.width * r.height;
@@ -65,7 +61,6 @@ export default function CostEstimator() {
 
     return {
       totalFloorArea,
-      totalWallArea,
       structure,
       foundation,
       roof,
@@ -97,7 +92,7 @@ export default function CostEstimator() {
           <div className="text-xs text-slate-500">m² plotas</div>
         </div>
         <div className="bg-slate-800/60 rounded-lg p-3 text-center">
-          <div className="text-xl font-bold text-emerald-400">{fmt(estimate.total / estimate.totalFloorArea || 0)}</div>
+          <div className="text-xl font-bold text-emerald-400">{fmt(estimate.totalFloorArea > 0 ? estimate.total / estimate.totalFloorArea : 0)}</div>
           <div className="text-xs text-slate-500">/ m² kaina</div>
         </div>
       </div>
