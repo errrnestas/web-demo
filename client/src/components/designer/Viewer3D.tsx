@@ -1212,6 +1212,9 @@ function WalkControls({ enabled, startX, startZ }: { enabled: boolean; startX: n
   const pitchRef = useRef(0);
   const yawRef = useRef(0);
   const lockedRef = useRef(false);
+  const eulerRef = useRef(new THREE.Euler(0, 0, 0, 'YXZ'));
+  const dirRef = useRef(new THREE.Vector3());
+  const yawEulerRef = useRef(new THREE.Euler());
 
   useEffect(() => {
     if (!enabled) return;
@@ -1251,18 +1254,19 @@ function WalkControls({ enabled, startX, startZ }: { enabled: boolean; startX: n
     if (!enabled) return;
     const speed = 4 * delta;
     const k = keysRef.current;
-    const euler = new THREE.Euler(pitchRef.current, yawRef.current, 0, 'YXZ');
-    const dir = new THREE.Vector3();
 
-    if (k['KeyW']) dir.z -= 1;
-    if (k['KeyS']) dir.z += 1;
-    if (k['KeyA']) dir.x -= 1;
-    if (k['KeyD']) dir.x += 1;
+    dirRef.current.set(0, 0, 0);
+    if (k['KeyW']) dirRef.current.z -= 1;
+    if (k['KeyS']) dirRef.current.z += 1;
+    if (k['KeyA']) dirRef.current.x -= 1;
+    if (k['KeyD']) dirRef.current.x += 1;
 
-    dir.normalize().applyEuler(new THREE.Euler(0, yawRef.current, 0)).multiplyScalar(speed);
-    camera.position.add(dir);
+    yawEulerRef.current.set(0, yawRef.current, 0);
+    dirRef.current.normalize().applyEuler(yawEulerRef.current).multiplyScalar(speed);
+    camera.position.add(dirRef.current);
     camera.position.y = 1.7;
-    camera.setRotationFromEuler(euler);
+    eulerRef.current.set(pitchRef.current, yawRef.current, 0);
+    camera.setRotationFromEuler(eulerRef.current);
   });
 
   return null;
