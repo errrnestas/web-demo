@@ -157,6 +157,7 @@ export default function HomeDesigner() {
         try {
           const plan = JSON.parse(ev.target?.result as string);
           dispatch({ type: 'SET_PLAN', plan });
+          setTimeout(() => window.dispatchEvent(new CustomEvent('designer:fitview')), 50);
         } catch { alert('Netinkamas failas'); }
       };
       reader.readAsText(file);

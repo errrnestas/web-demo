@@ -1738,6 +1738,33 @@ export default function FloorPlanCanvas() {
         onContextMenu={handleContextMenu}
         onMouseLeave={() => { setDragging(null); setIsPanning(false); guideLinesRef.current = { vertX: null, horizY: null }; if (tooltipRef.current) tooltipRef.current.style.display = 'none'; }}
       />
+      {/* Empty-state overlay */}
+      {state.plan.rooms.length === 0 && !drawing && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="text-center space-y-5 px-8 max-w-xs">
+            <div className="text-6xl opacity-20 select-none">🏠</div>
+            <div>
+              <div className="text-slate-200 font-semibold text-lg mb-1">Pradėkite savo projektą</div>
+              <div className="text-slate-500 text-sm">Sukurkite kambarį arba įkelkite šabloną</div>
+            </div>
+            <div className="text-left bg-slate-800/60 rounded-xl p-4 space-y-2 border border-slate-700/50">
+              <div className="text-xs text-slate-400 flex items-center gap-2">
+                <span className="w-5 h-5 bg-blue-600 rounded text-center font-bold text-white text-xs flex items-center justify-center shrink-0">R</span>
+                Pasirinkite įrankį <span className="text-blue-400 font-medium">Kambarys</span>
+              </div>
+              <div className="text-xs text-slate-400 flex items-center gap-2">
+                <span className="w-5 h-5 bg-slate-700 rounded text-center text-slate-300 text-xs flex items-center justify-center shrink-0">2</span>
+                Spustelėkite ir vilkite, kad nubrėžtumėte
+              </div>
+              <div className="text-xs text-slate-400 flex items-center gap-2">
+                <span className="w-5 h-5 bg-slate-700 rounded text-center text-slate-300 text-xs flex items-center justify-center shrink-0">3</span>
+                Pridėkite duris, langus ir baldus
+              </div>
+            </div>
+            <div className="text-xs text-slate-600">arba pasirinkite šabloną kairėje esančiame skydelyje</div>
+          </div>
+        </div>
+      )}
       {/* Hover tooltip */}
       <div
         ref={tooltipRef}

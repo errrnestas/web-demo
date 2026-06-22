@@ -1089,6 +1089,22 @@ function HouseScene({ showLabels, showCeiling, lighting }: { showLabels: boolean
 type CameraMode = 'orbit' | 'top' | 'walk';
 type LightingPreset = 'day' | 'sunset' | 'night';
 
+function SceneEffects({ lighting }: { lighting: LightingPreset }) {
+  const { gl, scene } = useThree();
+  useEffect(() => {
+    const configs: Record<LightingPreset, { exposure: number; fog: THREE.Fog | null }> = {
+      day:    { exposure: 1.1,  fog: null },
+      sunset: { exposure: 1.45, fog: new THREE.Fog('#c4724a', 35, 110) },
+      night:  { exposure: 0.65, fog: new THREE.Fog('#050510', 12, 60) },
+    };
+    const cfg = configs[lighting];
+    gl.toneMappingExposure = cfg.exposure;
+    scene.fog = cfg.fog;
+    return () => { scene.fog = null; };
+  }, [lighting, gl, scene]);
+  return null;
+}
+
 const LIGHTING_PRESETS: Record<LightingPreset, { sunPos: [number, number, number]; ambient: number; sunIntensity: number; skyMie: number; skyRayleigh: number; ground: string; label: string }> = {
   day:    { sunPos: [100, 80, 100], ambient: 0.5, sunIntensity: 1.0, skyMie: 0.005, skyRayleigh: 2,   ground: '#8fa080', label: '☀️ Diena' },
   sunset: { sunPos: [30, 6, -80],   ambient: 0.3, sunIntensity: 1.4, skyMie: 0.02,  skyRayleigh: 4,   ground: '#6b7060', label: '🌅 Saulėlydis' },
@@ -1209,6 +1225,7 @@ export default function Viewer3D() {
           <PerspectiveCamera makeDefault position={[center.x, 1.7, center.z + 3]} fov={75} near={0.05} far={200} />
         )}
         <Sky sunPosition={LIGHTING_PRESETS[lighting].sunPos} mieCoefficient={LIGHTING_PRESETS[lighting].skyMie} rayleigh={LIGHTING_PRESETS[lighting].skyRayleigh} />
+        <SceneEffects lighting={lighting} />
         <Suspense fallback={null}>
           <HouseScene showLabels={showLabels} showCeiling={showCeiling} lighting={lighting} />
         </Suspense>

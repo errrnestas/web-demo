@@ -75,6 +75,7 @@ export default function LeftPanel() {
                   if (confirm(`Įkelti šabloną "${t.name}"? Dabartinis projektas bus prarastas.`)) {
                     dispatch({ type: 'SET_PLAN', plan: { ...t.plan, id: `tpl-${Date.now()}`, createdAt: Date.now(), updatedAt: Date.now() } });
                     setShowTemplates(false);
+                    setTimeout(() => window.dispatchEvent(new CustomEvent('designer:fitview')), 50);
                   }
                 }}
                 className="w-full text-left px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-indigo-600 hover:bg-slate-750 transition-all"
@@ -217,16 +218,20 @@ export default function LeftPanel() {
         <button
           onClick={() => dispatch({ type: 'UNDO' })}
           disabled={state.historyIndex <= 0}
-          className="flex-1 py-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          title={`Atšaukti (Ctrl+Z) — ${state.historyIndex} žingsniai`}
+          className="flex-1 py-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1"
         >
-          ↩ Atšaukti
+          ↩ <span>Atšaukti</span>
+          {state.historyIndex > 0 && <span className="text-slate-500 font-mono">({state.historyIndex})</span>}
         </button>
         <button
           onClick={() => dispatch({ type: 'REDO' })}
           disabled={state.historyIndex >= state.history.length - 1}
-          className="flex-1 py-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          title={`Grąžinti (Ctrl+Shift+Z) — ${state.history.length - 1 - state.historyIndex} žingsniai`}
+          className="flex-1 py-1.5 text-xs rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1"
         >
-          ↪ Grąžinti
+          ↪ <span>Grąžinti</span>
+          {state.historyIndex < state.history.length - 1 && <span className="text-slate-500 font-mono">({state.history.length - 1 - state.historyIndex})</span>}
         </button>
       </div>
     </div>
