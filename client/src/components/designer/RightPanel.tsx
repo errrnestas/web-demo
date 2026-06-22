@@ -38,6 +38,7 @@ const WALL_MAT_LABELS: Record<Room['wallMaterial'], string> = {
 function RoomEditor({ room }: { room: Room }) {
   const { dispatch, state } = useDesigner();
   const update = (patch: Partial<Room>) => dispatch({ type: 'UPDATE_ROOM', room: { ...room, ...patch } });
+  const updateLive = (patch: Partial<Room>) => dispatch({ type: 'UPDATE_ROOM_LIVE', room: { ...room, ...patch } });
 
   return (
     <div className="space-y-4">
@@ -45,7 +46,8 @@ function RoomEditor({ room }: { room: Room }) {
         <label className="text-xs text-slate-400 block mb-1">Pavadinimas</label>
         <input
           value={room.name}
-          onChange={e => update({ name: e.target.value })}
+          onChange={e => updateLive({ name: e.target.value })}
+          onBlur={e => update({ name: e.target.value })}
           className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
         />
       </div>
@@ -338,6 +340,7 @@ const WALL_LABELS: Record<string, string> = {
 function DoorEditor({ door }: { door: Door }) {
   const { dispatch } = useDesigner();
   const update = (patch: Partial<Door>) => dispatch({ type: 'UPDATE_DOOR', door: { ...door, ...patch } });
+  const updateLive = (patch: Partial<Door>) => dispatch({ type: 'UPDATE_DOOR_LIVE', door: { ...door, ...patch } });
 
   return (
     <div className="space-y-3">
@@ -362,7 +365,8 @@ function DoorEditor({ door }: { door: Door }) {
           max="0.95"
           step="0.05"
           value={door.position}
-          onChange={e => update({ position: parseFloat(e.target.value) })}
+          onChange={e => updateLive({ position: parseFloat(e.target.value) })}
+          onMouseUp={e => update({ position: parseFloat((e.target as HTMLInputElement).value) })}
           className="w-full accent-blue-500"
         />
         <span className="text-xs text-slate-500">{Math.round(door.position * 100)}%</span>
@@ -404,6 +408,7 @@ function DoorEditor({ door }: { door: Door }) {
 function WindowEditor({ win }: { win: WindowElement }) {
   const { dispatch } = useDesigner();
   const update = (patch: Partial<WindowElement>) => dispatch({ type: 'UPDATE_WINDOW', win: { ...win, ...patch } });
+  const updateLive = (patch: Partial<WindowElement>) => dispatch({ type: 'UPDATE_WINDOW_LIVE', win: { ...win, ...patch } });
 
   return (
     <div className="space-y-3">
@@ -454,7 +459,8 @@ function WindowEditor({ win }: { win: WindowElement }) {
           max="0.95"
           step="0.05"
           value={win.position}
-          onChange={e => update({ position: parseFloat(e.target.value) })}
+          onChange={e => updateLive({ position: parseFloat(e.target.value) })}
+          onMouseUp={e => update({ position: parseFloat((e.target as HTMLInputElement).value) })}
           className="w-full accent-blue-500"
         />
         <span className="text-xs text-slate-500">{Math.round(win.position * 100)}%</span>
@@ -560,10 +566,8 @@ export default function RightPanel({ embedded = false }: { embedded?: boolean })
                   max="4.0"
                   step="0.1"
                   value={state.plan.wallHeight}
-                  onChange={e => {
-                    const h = parseFloat(e.target.value);
-                    dispatch({ type: 'SET_WALL_HEIGHT', height: h });
-                  }}
+                  onChange={e => dispatch({ type: 'SET_WALL_HEIGHT_LIVE', height: parseFloat(e.target.value) })}
+                  onMouseUp={e => dispatch({ type: 'SET_WALL_HEIGHT', height: parseFloat((e.target as HTMLInputElement).value) })}
                   className="flex-1 h-2 accent-blue-500"
                 />
                 <span className="text-xs text-white w-12">{state.plan.wallHeight}m</span>

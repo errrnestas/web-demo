@@ -31,7 +31,8 @@ type Action =
   | { type: 'TOGGLE_SNAP' }
   | { type: 'SET_GRID_SIZE'; size: number }
   | { type: 'SET_CAMERA_MODE'; mode: 'orbit' | 'firstperson' }
-  | { type: 'SET_WALL_HEIGHT'; height: number };
+  | { type: 'SET_WALL_HEIGHT'; height: number }
+  | { type: 'SET_WALL_HEIGHT_LIVE'; height: number };
 
 function savePlanToHistory(state: DesignerState, newPlan: FloorPlan) {
   const newHistory = state.history.slice(0, state.historyIndex + 1);
@@ -135,6 +136,11 @@ export function designerReducer(state: DesignerState, action: Action): DesignerS
       return { ...state, cameraMode: action.mode };
     case 'SET_WALL_HEIGHT':
       return updatePlan(state, p => ({ ...p, wallHeight: action.height }));
+    case 'SET_WALL_HEIGHT_LIVE': {
+      const newPlan = { ...state.plan, wallHeight: action.height, updatedAt: Date.now() };
+      try { localStorage.setItem('homedesigner-plan', JSON.stringify(newPlan)); } catch {}
+      return { ...state, plan: newPlan };
+    }
     default:
       return state;
   }

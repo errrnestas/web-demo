@@ -132,7 +132,8 @@ type Action =
   | { type: 'TOGGLE_SNAP' }
   | { type: 'SET_GRID_SIZE'; size: number }
   | { type: 'SET_CAMERA_MODE'; mode: 'orbit' | 'firstperson' }
-  | { type: 'SET_WALL_HEIGHT'; height: number };
+  | { type: 'SET_WALL_HEIGHT'; height: number }
+  | { type: 'SET_WALL_HEIGHT_LIVE'; height: number };
 
 function savePlanToHistory(state: DesignerState, newPlan: FloorPlan): Pick<DesignerState, 'history' | 'historyIndex'> {
   const newHistory = state.history.slice(0, state.historyIndex + 1);
