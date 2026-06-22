@@ -165,6 +165,18 @@ export default function HomeDesigner() {
   }, []);
 
   const totalArea = state.plan.rooms.reduce((s, r) => s + r.width * r.height, 0);
+  const overlapCount = (() => {
+    const rooms = state.plan.rooms;
+    const EPS = 0.02;
+    let n = 0;
+    for (let i = 0; i < rooms.length; i++)
+      for (let j = i + 1; j < rooms.length; j++) {
+        const a = rooms[i], b = rooms[j];
+        if (Math.min(a.x+a.width, b.x+b.width) - Math.max(a.x, b.x) > EPS &&
+            Math.min(a.y+a.height, b.y+b.height) - Math.max(a.y, b.y) > EPS) n++;
+      }
+    return n;
+  })();
   const [rightTab, setRightTab] = useState<'props' | 'cost'>('props');
   const [showSaveLoad, setShowSaveLoad] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -370,6 +382,11 @@ export default function HomeDesigner() {
           <span className="text-xs text-slate-500">
             Baldai: <span className="text-slate-300">{state.plan.furniture.length}</span>
           </span>
+          {overlapCount > 0 && (
+            <span className="text-xs text-red-400 font-semibold flex items-center gap-1">
+              ⚠ {overlapCount} persidengim{overlapCount === 1 ? 'as' : 'ai'}
+            </span>
+          )}
           <div className="flex-1" />
           <span className="text-xs text-slate-700 hidden lg:block">
             S · R · D · W · F · Del · G=Fit · Ctrl+Z/Y

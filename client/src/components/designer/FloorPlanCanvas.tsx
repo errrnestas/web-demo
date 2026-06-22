@@ -228,6 +228,53 @@ export default function FloorPlanCanvas() {
       ctx.fillRect(x, y, w, h);
     }
 
+    // Room overlap detection — diagonal crosshatch over intersecting areas
+    {
+      const OVERLAP_EPS = 0.02;
+      for (let i = 0; i < plan.rooms.length; i++) {
+        for (let j = i + 1; j < plan.rooms.length; j++) {
+          const a = plan.rooms[i];
+          const b = plan.rooms[j];
+          const ix1 = Math.max(a.x, b.x);
+          const iy1 = Math.max(a.y, b.y);
+          const ix2 = Math.min(a.x + a.width, b.x + b.width);
+          const iy2 = Math.min(a.y + a.height, b.y + b.height);
+          if (ix2 - ix1 > OVERLAP_EPS && iy2 - iy1 > OVERLAP_EPS) {
+            const { x: ox, y: oy } = worldToCanvas(ix1, iy1);
+            const ow = (ix2 - ix1) * scaleRef.current;
+            const oh = (iy2 - iy1) * scaleRef.current;
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(ox, oy, ow, oh);
+            ctx.clip();
+            ctx.fillStyle = 'rgba(239,68,68,0.28)';
+            ctx.fillRect(ox, oy, ow, oh);
+            ctx.strokeStyle = 'rgba(239,68,68,0.55)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let k = -oh; k < ow + oh; k += 10) {
+              ctx.moveTo(ox + k, oy);
+              ctx.lineTo(ox + k + oh, oy + oh);
+            }
+            ctx.stroke();
+            ctx.restore();
+            ctx.strokeStyle = 'rgba(239,68,68,0.9)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 3]);
+            ctx.strokeRect(ox, oy, ow, oh);
+            ctx.setLineDash([]);
+            if (ow > 22 && oh > 14) {
+              ctx.fillStyle = 'rgba(239,68,68,0.95)';
+              ctx.font = `bold ${Math.max(10, Math.min(16, Math.min(ow, oh) * 0.4))}px Inter, sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText('⚠', ox + ow / 2, oy + oh / 2);
+            }
+          }
+        }
+      }
+    }
+
     // Detect whether a wall side of a room is shared with an adjacent room that has a smaller ID.
     // The room with the smaller ID "owns" drawing that shared wall.
     const shouldSkipWallSide = (room: Room, side: 'top' | 'right' | 'bottom' | 'left'): boolean => {
